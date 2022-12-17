@@ -1,7 +1,7 @@
 // admin user
 module.exports = mongoose => {
-    const Packages = mongoose.model(
-      "Packages",
+    const FPackages = mongoose.model(
+      "FPackages",
       mongoose.Schema(
         {
           name: {
@@ -25,12 +25,9 @@ module.exports = mongoose => {
             default: 0
          },
          adderId: {
-            type: Number,
-            default: 0
+            type: String,
+            required: true
          },
-        crops: { 
-            type : Array ,
-             default : [] },// list of crops
         products: { 
             type : Array , // custom hybrid many to many
             default : [] },// list of objects with less information and ids
@@ -39,5 +36,5 @@ module.exports = mongoose => {
       )
     );
   
-    return Packages;
+    return FPackages;
   };

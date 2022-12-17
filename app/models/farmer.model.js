@@ -1,4 +1,4 @@
-// admin user
+
 module.exports = mongoose => {
     const Farmers = mongoose.model(
       "Farmers",
@@ -16,7 +16,7 @@ module.exports = mongoose => {
             type: String,
             required: true,
          },
-          crops: { 
+          farmProducts: { 
             type : Array ,
              default : [] },// list of crops
           location: String,

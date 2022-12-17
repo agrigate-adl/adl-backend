@@ -9,7 +9,8 @@ db.mongoose = mongoose;
 db.url = dbConfig.url;
 db.Users = require("./user.model.js")(mongoose);
 db.Farmers = require("./farmer.model.js")(mongoose);
-db.Packages = require("./package.model.js")(mongoose);
+db.FPackages = require("./fpackage.model.js")(mongoose);
+db.Products = require("./product.model.js")(mongoose);
 db.ScratchCards = require("./scratchCard.model.js")(mongoose);
 db.Transactions = require("./transactions.model.js")(mongoose);
 

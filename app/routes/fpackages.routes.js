@@ -1,7 +1,7 @@
 const auth = require("../../middleware/auth");
 
 module.exports = app => {
-    const packages = require("../controllers/package.controllers");
+    const packages = require("../controllers/fpackage.controllers");
   
     var router = require("express").Router(); 
     

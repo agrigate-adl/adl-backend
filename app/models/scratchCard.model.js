@@ -9,15 +9,12 @@ module.exports = mongoose => {
             required: true,
          },
         status: {
-           type: Boolean,// true on usage
+           type: String,// used/unused
            required: true,
         },
-        serialNumber: {
+        cardNumber: {
             type: Number,
             required: true
-         },
-        value: {
-            type: String,
          },
          generatorID: {
             type: String,

@@ -1,23 +1,20 @@
 const db = require("../models/index");
 
-const Users = db.Users;
-const Farmers = db.Farmers;
+const Products = db.Products;
 
-exports.addFarmer = async (req, res) => {
-    const { name, contact, adderID, farmProducts, location } = req.body;
-    if (!(name && contact && adderID && farmProducts && location)) {
+exports.addProduct = async (req, res) => {
+    const { name, adderID, price, description } = req.body;
+    if (!(name  && adderID && description && price)) {
         return res.status(400).send({message:"All input is required"});
     }
-      const farmer = new Farmers({
+      const product = new Products({
         name: name,
-        contact: contact,
         adderID: adderID,
-        farmProducts: farmProducts,
-        location: location,
-        packages: [],
+        description: description,
+        unitPrice: price,
       }); 
-      farmer
-        .save(farmer)
+      product
+        .save(product)
         .then((data) => {
           res.status(201).send({
             message:"success",
@@ -31,15 +28,15 @@ exports.addFarmer = async (req, res) => {
         });
 }
 
-exports.getFarmer = async (req, res) => {
+exports.getProduct = async (req, res) => {
     const id = req.params.id;
-    Farmers.findById(id)
+    Products.findById(id)
     .then(data => {
       if( data !== null){
         res.status(200).send( { message: 'success', data:data});
       }
      else{
-      res.status(404).send( {message:'no farmer retrieved', data:null});
+      res.status(404).send( {message:'no product retrieved', data:null});
      }
     })
     .catch(err => {
@@ -49,8 +46,8 @@ exports.getFarmer = async (req, res) => {
     });
 }
 
-exports.getAllFarmers = async (req, res) => {
-Farmers
+exports.getAllProducts = async (req, res) => {
+Products
 .find()
 .then((data) => {
   res.status(200).json({
@@ -67,6 +64,6 @@ Farmers
 });
 }
 
-exports.editFarmer = async (req, res) => {
+exports.editProduct = async (req, res) => {
 
 }
