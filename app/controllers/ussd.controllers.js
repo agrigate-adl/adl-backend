@@ -8,6 +8,7 @@ const Packages = db.FPackages
 const sc = db.ScratchCards;
 const Transactions  = db.Transactions;
 
+let foi;
 
 menu.startState({
     run: () => {
@@ -36,10 +37,10 @@ menu.state('packages', {
     // get farmer's packages
     //map package number and name
     const query = {contact:numberTel}
-    let f =  await Farmers.findOne(query);
+    foi =  await Farmers.findOne(query);
 
     if(farmerOfIntrest !== null){
-        menu.con('Please select package to pay for'+ f.name +
+        menu.con('Please select package to pay for'+ foi.name +
         '\n1. Test'
         );
     }else{
@@ -87,6 +88,9 @@ menu.end("Goodbye :)");
 
 exports.welcomeFarmer = async (req, res) => {
 
+    // const query = {contact:"000000"}
+    // foi =  await Farmers.findOne(query);
+    // console.log(foi)
     menu.run(req.body, ussdResult  => {
         res.send(ussdResult);
      });
