@@ -92,11 +92,12 @@ menu.end("Goodbye :)");
 
 exports.welcomeFarmer = async (req, res) => {
 
-    // const query = {contact:"000000"}
-    // foi =  await Farmers.findOne(query);
-    // console.log(foi)
-    menu.run(req.body, ussdResult  => {
-        res.send(ussdResult);
-     });
+    const query = {contact:"000000"}
+    foi =  await Farmers.findOne(query);
+    console.log(foi)
+    
+    // menu.run(req.body, ussdResult  => {
+    //     res.send(ussdResult);
+    // });
     
 };

@@ -30,7 +30,8 @@ exports.addPackageToFarmer = async (req, res) => {
             totalDue:totalAmount,
             balance:0,
             status:'pending',
-            products:products
+            products:products,
+            name: name
           })
           owner_farm.packages = packages
           await owner_farm.save();
