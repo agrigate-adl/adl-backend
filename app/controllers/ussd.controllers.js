@@ -2,6 +2,7 @@ const UssdMenu = require('ussd-builder');
 let menu = new UssdMenu();
 
 const db = require("../models/index");
+//*384*11472*1#
 
 const Farmers = db.Farmers;
 const Packages = db.FPackages
@@ -38,11 +39,14 @@ menu.state('packages', {
     //map package number and name
     const query = {contact:numberTel}
     foi =  await Farmers.findOne(query);
-
     if(foi !== null){
-        menu.con('Please select package to pay for'+ foi.name +
+        if(foi.packages && foi.packages.length >0){
+        menu.con('Please select package to pay for  '+ foi.name +
         '\n1. Test'
         );
+        }else{
+            menu.end(foi.name + ' '+ 'has no pending packages'); 
+        }
     }else{
         menu.end('Failed to get farmer with that phone number. Please register or try again');
     }
