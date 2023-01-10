@@ -39,7 +39,7 @@ menu.state('packages', {
     const query = {contact:numberTel}
     foi =  await Farmers.findOne(query);
 
-    if(farmerOfIntrest !== null){
+    if(foi !== null){
         menu.con('Please select package to pay for'+ foi.name +
         '\n1. Test'
         );
