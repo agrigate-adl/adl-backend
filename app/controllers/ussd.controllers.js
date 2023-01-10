@@ -10,6 +10,7 @@ const sc = db.ScratchCards;
 const Transactions  = db.Transactions;
 
 let foi;
+let arrayOfPacks = []
 
 menu.startState({
     run: () => {
@@ -41,8 +42,11 @@ menu.state('packages', {
     foi =  await Farmers.findOne(query);
     if(foi !== null){
         if(foi.packages && foi.packages.length >0){
+        foi.packages.forEach((element,index )=> {
+             arrayOfPacks.push('\n'+(index+1)+'. '+element.name+','+element.products.join(','))
+        });
         menu.con('Please select package to pay for  '+ foi.name +
-        '\n1. Test'
+        arrayOfPacks.join(',')
         );
         }else{
             menu.end(foi.name + ' '+ 'has no pending packages'); 
@@ -92,12 +96,15 @@ menu.end("Goodbye :)");
 
 exports.welcomeFarmer = async (req, res) => {
 
-    const query = {contact:"000000"}
-    foi =  await Farmers.findOne(query);
-    console.log(foi)
-    
-    // menu.run(req.body, ussdResult  => {
-    //     res.send(ussdResult);
+    // const query = {contact:"0706081432"}
+    // foi =  await Farmers.findOne(query);
+    // let arrayOfPacks = []
+    // foi.packages.forEach((element,index )=> {
+    //     arrayOfPacks.push('\n'+(index+1)+'. '+element.name+','+element.products.join(','))
     // });
+    // console.log(arrayOfPacks.join(','))
+    menu.run(req.body, ussdResult  => {
+        res.send(ussdResult);
+    });
     
 };
