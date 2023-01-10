@@ -8,13 +8,6 @@ const Packages = db.FPackages
 const sc = db.ScratchCards;
 const Transactions  = db.Transactions;
 
-let farmerOfIntrest;
-exports.welcomeFarmer = (req, res) => {
-    menu.run(req.body, ussdResult => {
-        res.send(ussdResult);
-     });
-    
-};
 
 menu.startState({
     run: () => {
@@ -42,10 +35,11 @@ menu.state('packages', {
      let numberTel = menu.val;;
     // get farmer's packages
     //map package number and name
-    farmerOfIntrest = await this.getFarmerByContact(numberTel);
-    
+    const query = {contact:numberTel}
+    let f =  await Farmers.findOne(query);
+
     if(farmerOfIntrest !== null){
-        menu.con('Please select package to pay for'+ farmerOfIntrest.name +
+        menu.con('Please select package to pay for'+ f.name +
         '\n1. Test'
         );
     }else{
@@ -90,18 +84,11 @@ menu.end("Goodbye :)");
     }
   });
 
-exports.getFarmerByContact = async (contact) => {
-    const query = {contact}
-    Farmers.find(query)
-    .then(data => {
-      if( data !== null){
-        return data
-      }
-     else{
-        return null
-     }
-    })
-    .catch(err => {
-       return null
-    });
-}
+
+exports.welcomeFarmer = async (req, res) => {
+
+    menu.run(req.body, ussdResult  => {
+        res.send(ussdResult);
+     });
+    
+};
