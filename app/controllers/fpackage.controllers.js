@@ -25,12 +25,16 @@ exports.addPackageToFarmer = async (req, res) => {
           try {
           owner_farm = await Farmers.findById(owner)
           var packages = owner_farm.packages
+          var productNames = []
+          products.forEach(element => {
+            productNames.push(element.name)
+          });
           packages.push({
             packageID: data._id,
             totalDue:totalAmount,
             balance:0,
             status:'pending',
-            products:products,
+            products:productNames,
             name: name
           })
           owner_farm.packages = packages
