@@ -31,6 +31,7 @@
     "nodemailer": "^6.6.3",
     "nodemon": "^2.0.12",
     "object-hash": "^3.0.0",
+    "ussd-builder": "^1.2.5",
     "uuid": "^8.3.2"
   }
 }
