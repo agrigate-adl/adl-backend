@@ -115,9 +115,8 @@ menu.state('end', {
         let change = updatedPack.totalAmount - newBal
 
         console.log(change)
-        menu.end('Payment was successfull. You paid: UGX'+ doc.amount+'.'+'\n The total paid on the package is: UGX'
-        + newBal +
-        +'\n Your due: UGX '
+        menu.end('Payment was successfull. You paid: UGX'+ doc.amount+'.'+
+        '\n The balance on the package is: UGX'
         + change +
         '.');
     }else{
