@@ -112,10 +112,11 @@ menu.state('end', {
             reference: doc.cardNumber,
           }); 
         let save =  await transaction.save(transaction)
-        
+        let change = Number(foi.packages[selectedPackage].totalDue) - Number(newBal)
+
         menu.end('Payment was successfull. You paid: UGX'+ doc.amount+'.'+'\n The total paid on the package is: UGX'
         + newBal +
-        +'\n Your due: UGX'+(Number(foi.packages[selectedPackage].totalDue) - newBal));
+        +'\n Your due: UGX '+change+'.');
     }else{
         menu.end('Invalid card number');
     }     
