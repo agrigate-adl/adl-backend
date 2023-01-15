@@ -114,9 +114,12 @@ menu.state('end', {
         let save =  await transaction.save(transaction)
         let change = updatedPack.totalAmount - newBal
 
+        console.log(change)
         menu.end('Payment was successfull. You paid: UGX'+ doc.amount+'.'+'\n The total paid on the package is: UGX'
         + newBal +
-        +'\n Your due: UGX '+ change +'.');
+        +'\n Your due: UGX '
+        + change +
+        '.');
     }else{
         menu.end('Invalid card number');
     }     
