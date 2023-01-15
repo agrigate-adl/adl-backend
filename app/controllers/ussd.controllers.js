@@ -81,13 +81,12 @@ menu.state('end', {
     let filter ={ $and: [{"cardNumber":cardNumber}, {"status":"unused"} ]}
     let update = {"status":"used","farmer":foi._id}
     let doc = await sc.findOneAndUpdate(filter, update,{
-        new: true
+        new: true, useFindAndModify:false
     });
     if(doc){
-        console.log(foi.packages)
         let newBal = (Number(foi.packages[selectedPackage].balance) + Number(doc.amount))
-        packUpdate= {"balance": newBal}
-        newFarmerPackages = foi.packages
+        let packUpdate= {"balance": newBal}
+        let newFarmerPackages = foi.packages
         newFarmerPackages[selectedPackage].balance = newBal
         if(newBal >= Number(foi.packages[selectedPackage].totalDue)){
             packUpdate = {...packUpdate, "status":"complete"}
@@ -119,8 +118,7 @@ menu.state('end', {
         +'\n Your due: UGX'+(Number(foi.packages[selectedPackage].totalDue) - newBal));
     }else{
         menu.end('Invalid card number');
-    }  
-    
+    }     
     }
     });
 menu.state('quit', {
