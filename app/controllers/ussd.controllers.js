@@ -93,7 +93,7 @@ menu.state('end', {
             newFarmerPackages[selectedPackage].balance = "complete"
         }   
         //update package
-        await Packages.findByIdAndUpdate(foi.packages[selectedPackage].packageID, packUpdate,{
+        let updatedPack =  await Packages.findByIdAndUpdate(foi.packages[selectedPackage].packageID, packUpdate,{
             new: true, useFindAndModify:false
         });
         //update farmer
