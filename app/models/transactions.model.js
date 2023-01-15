@@ -1,7 +1,7 @@
 // admin user
 module.exports = mongoose => {
-    const Packages = mongoose.model(
-      "Packages",
+    const Transactions = mongoose.model(
+      "Transactions",
       mongoose.Schema(
         {
         payee: {
@@ -17,12 +17,12 @@ module.exports = mongoose => {
             required: true
          },
          reference: {
-            type: Number,
+            type: String,
          },
         },
         { timestamps: true }
       )
     );
   
-    return Packages;
+    return Transactions;
   };

@@ -4,14 +4,14 @@ module.exports = mongoose => {
       "FPackages",
       mongoose.Schema(
         {
-          name: {
+         name: {
             type: String,
             required: true,
          },
           owner: {
-           type: Object,
+           type: String,
            required: true,
-        },// number, id and name 
+        },//id
         status: {
             type: String,
             default: 'pending',//pending and complete

@@ -11,6 +11,7 @@ const Transactions  = db.Transactions;
 
 let foi;
 let arrayOfPacks = []
+let selectedPackage;
 
 menu.startState({
     run: () => {
@@ -61,10 +62,12 @@ menu.state('packages', {
     });
 menu.state('card', {
         run: async () => {
-         let selectedPackageNo = menu.val;
+         //
+         selectedPackage = Number(menu.val) - 1;
          // get package by id
          // if val is out of index range, quit. else get card
-        menu.con('Please enter the number on the scratch card '+ selectedPackageNo);
+         
+        menu.con('Please enter the number on the scratch card '+ menu.val);
         },
         next: {
          '*[a-zA-Z0-9\-\_]+': 'end'
@@ -73,18 +76,51 @@ menu.state('card', {
 
 menu.state('end', {
     run: async () => {
-    // let tickets = menu.val;
-    // dataToSave.tickets = tickets;
-    // console.log(dataToSave);
-    // // Save the data
-    // const data = new Model({
-    // name: dataToSave.name,
-    // tickets: dataToSave.tickets
-    // });
-    // const dataSaved = await data.save();
-
     // make transation, edit farmer, edit package
-    menu.end('Awesome! Payment was successfull');
+    let cardNumber = menu.val
+    let filter ={ $and: [{"cardNumber":cardNumber}, {"status":"unused"} ]}
+    let update = {"status":"used","farmer":foi._id}
+    let doc = await sc.findOneAndUpdate(filter, update,{
+        new: true
+    });
+    if(doc){
+        console.log(foi.packages)
+        let newBal = (Number(foi.packages[selectedPackage].balance) + Number(doc.amount))
+        packUpdate= {"balance": newBal}
+        newFarmerPackages = foi.packages
+        newFarmerPackages[selectedPackage].balance = newBal
+        if(newBal >= Number(foi.packages[selectedPackage].totalDue)){
+            packUpdate = {...packUpdate, "status":"complete"}
+            newFarmerPackages[selectedPackage].balance = "complete"
+        }   
+        //update package
+        await Packages.findByIdAndUpdate(foi.packages[selectedPackage].packageID, packUpdate,{
+            new: true, useFindAndModify:false
+        });
+        //update farmer
+        await Farmers.findByIdAndUpdate(foi._id, {"packages":newFarmerPackages},{
+            new: true, useFindAndModify:false
+        });
+        //make transaction
+        const transaction = new Transactions({
+            payee: {
+            "name":foi.name,
+            "contact": foi.contact,
+            "id":foi._id
+            },
+            package: updatedPack._id,
+            amount: Number(doc.amount),
+            reference: doc.cardNumber,
+          }); 
+        let save =  await transaction.save(transaction)
+        
+        menu.end('Payment was successfull. You paid: UGX'+ doc.amount+'.'+'\n The total paid on the package is: UGX'
+        + newBal +
+        +'\n Your due: UGX'+(Number(foi.packages[selectedPackage].totalDue) - newBal));
+    }else{
+        menu.end('Invalid card number');
+    }  
+    
     }
     });
 menu.state('quit', {
@@ -95,14 +131,51 @@ menu.end("Goodbye :)");
 
 
 exports.welcomeFarmer = async (req, res) => {
-
     // const query = {contact:"0706081432"}
     // foi =  await Farmers.findOne(query);
-    // let arrayOfPacks = []
-    // foi.packages.forEach((element,index )=> {
-    //     arrayOfPacks.push('\n'+(index+1)+'. '+element.name+','+element.products.join(','))
+    // console.log(foi._id)
+    // let filter ={ $and: [{"cardNumber":10546923795083}, {"status":"used"} ]}
+    // let update = {"status":"used","farmer":foi._id}
+    // let doc = await sc.findOneAndUpdate(filter, update,{
+    //     new: true, useFindAndModify:false
     // });
-    // console.log(arrayOfPacks.join(','))
+    // if(doc){
+    //     console.log(foi.packages)
+    //     let newBal = (Number(foi.packages[0].balance) + Number(doc.amount))
+    //     packUpdate= {"balance": newBal}
+    //     newFarmerPackages = foi.packages
+    //     newFarmerPackages[0].balance = newBal
+    //     if(newBal >= Number(foi.packages[0].totalDue)){
+    //         packUpdate = {...packUpdate, "status":"complete"}
+    //         newFarmerPackages[0].balance = "complete"
+    //     }   
+    //     console.log(packUpdate)
+    //     //update
+    //     let updatedPack = await Packages.findByIdAndUpdate(foi.packages[0].packageID, packUpdate,{
+    //         new: true, useFindAndModify:false
+    //     });
+    //     console.log(updatedPack)
+    //     //update farmer
+    //     let updatedfoi = await Farmers.findByIdAndUpdate(foi._id, {"packages":newFarmerPackages},{
+    //         new: true, useFindAndModify:false
+    //     });
+    //     console.log("farmer")
+    //     console.log(updatedfoi)
+    //     //make transaction
+    //     const transaction = new Transactions({
+    //         payee: {
+    //         "name":foi.name,
+    //         "contact": foi.contact
+    //         },
+    //         package: updatedPack._id,
+    //         amount: Number(doc.amount),
+    //         reference: "xyz",
+    //       }); 
+    //     let save =  await transaction.save(transaction)
+    //     console.log(save)
+    // }else{
+    //     console.log('invalid number')
+    // }
     menu.run(req.body, ussdResult  => {
         res.send(ussdResult);
     });
