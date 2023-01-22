@@ -44,7 +44,9 @@ menu.state('packages', {
     if(foi !== null){
         if(foi.packages && foi.packages.length >0){
         foi.packages.forEach((element,index )=> {
-             arrayOfPacks.push('\n'+(index+1)+'. '+element.name+','+element.products.join(','))
+            if(element.status==='pending'){
+             arrayOfPacks.push('\n'+(index+1)+'. '+element.name+', due:'+element.balance)
+            }
         });
         menu.con('Please select package to pay for  '+ foi.name +
         arrayOfPacks.join(',')
@@ -67,7 +69,10 @@ menu.state('card', {
          // get package by id
          // if val is out of index range, quit. else get card
          
-        menu.con('Please enter the number on the scratch card '+ menu.val);
+        menu.con('Please enter the number on the scratch card for pacakage '+ 
+        foi.packages[selectedPackage].name + ':'+
+        foi.packages[selectedPackage].products.join('\n') +'\n'+
+        'with balance:'+ foi.packages[selectedPackage].balance);
         },
         next: {
          '*[a-zA-Z0-9\-\_]+': 'end'
