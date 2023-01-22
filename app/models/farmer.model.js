@@ -20,6 +20,7 @@ module.exports = mongoose => {
             type : Array ,
              default : [] },// list of crops
           location: String,
+          gender: String,
           packages: { 
             type : Array , // custom hybrid many to many
             default : [] },// list of objects with less information and ids

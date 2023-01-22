@@ -4,7 +4,7 @@ const Users = db.Users;
 const Farmers = db.Farmers;
 
 exports.addFarmer = async (req, res) => {
-    const { name, contact, adderID, farmProducts, location } = req.body;
+    const { name, contact, adderID, farmProducts, location, gender } = req.body;
     if (!(name && contact && adderID && farmProducts && location)) {
         return res.status(400).send({message:"All input is required"});
     }
@@ -14,6 +14,7 @@ exports.addFarmer = async (req, res) => {
         adderID: adderID,
         farmProducts: farmProducts,
         location: location,
+        gender:gender,
         packages: [],
       }); 
       farmer
