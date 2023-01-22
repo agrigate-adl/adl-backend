@@ -45,8 +45,9 @@ menu.state('packages', {
         if(foi.packages && foi.packages.length >0){
         foi.packages.forEach((element,index )=> {
             if(element.status==='pending'){
+             const change = (Number(foi.packages[index].totalDue - foi.packages[index].balance))
              arrayOfPacks.push('\n'+(index+1)+'. '+element.name+', due:'+ 
-             (Number(foi.packages[selectedPackage].totalDue - foi.packages[selectedPackage].balance)).toString())
+             change.toString())
             }
         });
         menu.con('Please select package to pay for  '+ foi.name +
@@ -69,12 +70,12 @@ menu.state('card', {
          selectedPackage = Number(menu.val) - 1;
          // get package by id
          // if val is out of index range, quit. else get card
-         
+        const change = (Number(foi.packages[selectedPackage].totalDue - foi.packages[selectedPackage].balance))
         menu.con('Please enter the number on the scratch card for pacakage '+ 
         foi.packages[selectedPackage].name + ':\n'+
         foi.packages[selectedPackage].products.join('\n') +'\n'+
-        'with balance:'+ 
-        (Number(foi.packages[selectedPackage].totalDue - foi.packages[selectedPackage].balance)).toString());
+        'with balance:'+ change.toString()
+        );
         },
         next: {
          '*[a-zA-Z0-9\-\_]+': 'end'
