@@ -27,7 +27,7 @@ exports.addPackageToFarmer = async (req, res) => {
           var packages = owner_farm.packages
           var productNames = []
           products.forEach(element => {
-            productNames.push(`${element.count} of ${element.name} @ ${element.price}`)
+            productNames.push(element.count + " of" + element.name + " @" + element.price)
           });
           packages.push({
             packageID: data._id,
