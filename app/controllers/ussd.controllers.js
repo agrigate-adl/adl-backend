@@ -66,7 +66,8 @@ menu.state('packages', {
     });
 menu.state('card', {
         run: async () => {
-         //
+         //empty array
+         arrayOfPacks = []
          selectedPackage = Number(menu.val) - 1;
          // get package by id
          // if val is out of index range, quit. else get card
@@ -122,7 +123,7 @@ menu.state('end', {
         let save =  await transaction.save(transaction)
         let change = updatedPack.totalAmount - newBal
 
-        console.log(change)
+        
         menu.end('Payment was successfull. You paid: UGX'+ doc.amount+'.'+
         '\n The balance on the package is: UGX'
         + change +
