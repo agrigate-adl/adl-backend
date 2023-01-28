@@ -6,7 +6,7 @@ module.exports = app => {
   
     router.post("/register-a",users.Createuser);
     router.post("/login", users.login);
-    router.get("/:id",auth, users.getAdmin);
+    router.get("/:id", users.getAdmin);
 
 
     app.use('/admin', router);
