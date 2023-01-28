@@ -5,11 +5,11 @@ module.exports = app => {
   
     var router = require("express").Router(); 
     
-    router.post("/add-package",packages.addPackageToFarmer);
-    router.get("/:id",packages.getFarmerPackage);
-    router.get("/",packages.getAllPackages);
-    router.patch("/:id",packages.editPackage)
-    
+    router.post("/add-package",auth,packages.addPackageToFarmer);
+    router.get("/:id",auth,packages.getFarmerPackage);
+    router.get("/",auth,packages.getAllPackages);
+    router.patch("/:id",auth,packages.editPackage)
+    router.delete("/:id",auth,packages.deletePackage)
     
     app.use('/packages', router);
   };

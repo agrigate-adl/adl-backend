@@ -16,6 +16,10 @@ module.exports = mongoose => {
             type: String,
             required: true,
          },
+         number: {
+          type: Number,
+          required: true,
+         },
           farmProducts: { 
             type : Array ,
              default : [] },// list of crops

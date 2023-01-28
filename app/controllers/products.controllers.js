@@ -1,16 +1,54 @@
 const db = require("../models/index");
+const dbConfig = require("../../config/dbconfig.js");
+const mongoose = require('mongoose');
+const ObjectId = mongoose.Types.ObjectId;
 
 const Products = db.Products;
+const Counters = db.Counters;
 
 exports.addProduct = async (req, res) => {
     const { name, adderID, price, description } = req.body;
     if (!(name  && adderID && description && price)) {
         return res.status(400).send({message:"All input is required"});
     }
+
+    Products.findOne({ name: name })
+    .then(async (data) => {
+      if (data !== null) {
+        res.status(502).send({ message: "product already exists" });
+        return;
+      }
+      var num
+      var collectionExists = await Counters.findById(dbConfig.counterCollection)
+      if (collectionExists == null) {
+        const count = new Counters({
+          _id: new ObjectId(dbConfig.counterCollection),
+          farmers: 0,
+          products: 1,
+          packages: 0,
+        });
+       var counts =  await count.save(count)
+       num = counts.products
+      } else {
+        try {
+          let doc = await Counters.findByIdAndUpdate(dbConfig.counterCollection.toString(), 
+          {$inc: {products: 1}}, {new: true, useFindAndModify:false })
+           if (doc) { 
+              num = doc.products
+            } 
+          } catch (err) {
+            res.status(500).send({ message: "failed to add product" });
+            return
+          }
+      }
+
+      if (typeof num === "number" || !num) {
+
       const product = new Products({
         name: name,
         adderID: adderID,
         description: description,
+        number:num,
         unitPrice: price,
       }); 
       product
@@ -24,6 +62,16 @@ exports.addProduct = async (req, res) => {
         .catch((error) => {
           res.status(500).send({
             message: error.message,
+          });
+        });
+      } else {
+        res.status(502).send({ message: "Failed to save product" });
+        return;
+      }
+
+      }).catch((e) => {
+          res.status(500).send({
+            message: e.message,
           });
         });
 }
@@ -63,6 +111,20 @@ Products
   );
 });
 }
+exports.deleteProduct = async (req, res) => {
+  const id = req.params.id;
+  try {
+  await Products.deleteOne( { "_id" : ObjectId(id) } );
+  res.status(200).send({
+    message: "deleted product successfully",
+  });
+ } catch (e) {
+  console.log(e)
+  res.status(500).send({
+    message: "failed to product product",
+  });
+ }
+};
 
 exports.editProduct = async (req, res) => {
 

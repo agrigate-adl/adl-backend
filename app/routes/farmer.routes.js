@@ -5,11 +5,12 @@ module.exports = app => {
   
     var router = require("express").Router(); 
 
-    router.post("/add-farmer",farmers.addFarmer);
-    router.get("/",farmers.getAllFarmers);
-    router.get("/:id",farmers.getFarmer);
-    router.patch("/:id",farmers.editFarmer)
-    
+    router.post("/add-farmer",auth,farmers.addFarmer);
+    router.get("/",auth,farmers.getAllFarmers);
+    router.get("/:id",auth,farmers.getFarmer);
+    router.patch("/:id",auth,farmers.editFarmer)
+    router.delete("/:id",auth, farmers.deleteFarmer);
+    router.post("/search-farmer",auth, farmers.searchkey);
     
     app.use('/farmer', router);
   };

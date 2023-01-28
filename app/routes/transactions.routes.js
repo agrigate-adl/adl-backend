@@ -5,8 +5,8 @@ module.exports = app => {
   
     var router = require("express").Router(); 
     
-    router.get("/",transactions.getAllTransactions);
-    router.get("/:id",transactions.getTransactions);
+    router.get("/",auth,transactions.getAllTransactions);
+    router.get("/:id",auth,transactions.getTransactions);
 
     app.use('/transactions', router);
   };

@@ -8,7 +8,7 @@ const { generatorID, count, amount } = req.body;
 if (!(generatorID && count && amount)) {
         return res.status(400).send({message:"Not enough data to add cards"});
 }
-if (count > 50 ) {
+if (count > 400 ) {
     return res.status(430).send({message:"too many cards requested"});
 }
 var insertationArray = []

@@ -1,20 +1,36 @@
 const db = require("../models/index");
+const dbConfig = require("../../config/dbconfig.js");
+const mongoose = require('mongoose');
+const ObjectId = mongoose.Types.ObjectId;
 
 // const Users = db.Users;
 const Farmers = db.Farmers;
 const Packages = db.FPackages
+const Counters = db.Counters;
 
 exports.addPackageToFarmer = async (req, res) => {
     const { name, owner, adderID, totalAmount, products } = req.body;
     if (!(name && owner && adderID && totalAmount && products)) {
         return res.status(400).send({message:"All input is required"});
     }
+    var num
+      try {
+        let doc = await Counters.findByIdAndUpdate(dbConfig.counterCollection.toString(), 
+        {$inc: {packages: 1}}, {new: true, useFindAndModify:false })
+         if (doc) { 
+            num = doc.packages
+          } 
+        } catch (err) {
+          res.status(500).send({ message: "failed to add package" });
+          return
+        }
       const  package =new Packages({
         name: name,
         owner: owner,
         adderId: adderID,
         totalAmount: totalAmount,
         products: products,
+        number: num,
         balance:0,
         status:'pending',
       }); 
@@ -92,6 +108,20 @@ Packages
   );
 });
 }
+exports.deletePackage = async (req, res) => {
+  const id = req.params.id;
+  try {
+  await Packages.deleteOne( { "_id" : ObjectId(id) } );
+  res.status(200).send({
+    message: "deleted package successfully",
+  });
+ } catch (e) {
+  res.status(500).send({
+    message: "failed to delete package",
+  });
+ }
+};
+
 
 // change farmer package too
 exports.editPackage = async (req, res) => {

@@ -12,6 +12,10 @@ module.exports = mongoose => {
            type: String,
            required: true,
         },
+        number: {
+          type: Number,
+          required: true,
+         },
          adderID: {
             type: String,
             required: true,

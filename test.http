@@ -1,8 +1,7 @@
-POST  http://localhost:7747/ussd/v1
+POST  http://localhost:7747/farmer/search-farmer
 Content-Type: application/json
 
 {
-     
+  "word":"0780543256"
 }
-
 

@@ -5,11 +5,11 @@ module.exports = app => {
   
     var router = require("express").Router(); 
 
-    router.post("/add-product",products.addProduct);
-    router.get("/",products.getAllProducts);
-    router.get("/:id",products.getProduct);
-    router.patch("/:id",products.editProduct)
-    
-    
+    router.post("/add-product",auth,products.addProduct);
+    router.get("/",auth,products.getAllProducts);
+    router.get("/:id",auth,products.getProduct);
+    router.patch("/:id",auth,products.editProduct)
+    router.delete("/:id",auth,products.deleteProduct)
+
     app.use('/products', router);
   };

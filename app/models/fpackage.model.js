@@ -28,7 +28,11 @@ module.exports = mongoose => {
             type: String,
             required: true
          },
-        products: { 
+         number: {
+            type: Number,
+            required: true,
+           },
+         products: { 
             type : Array , // custom hybrid many to many
             default : [] },// list of objects with less information and ids item and amount 
         },

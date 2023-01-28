@@ -5,9 +5,9 @@ module.exports = app => {
   
     var router = require("express").Router(); 
     
-    router.post("/print-newcards",scratchCard.addCardBatchs);
-    router.post("/available",scratchCard.getCardAvailableCounts);
-    router.post("/unavailable",scratchCard.getCardUsedCounts);
+    router.post("/print-newcards",auth,scratchCard.addCardBatchs);
+    router.post("/available",auth,scratchCard.getCardAvailableCounts);
+    router.post("/unavailable",auth,scratchCard.getCardUsedCounts);
 
     app.use('/cards', router);
   };
