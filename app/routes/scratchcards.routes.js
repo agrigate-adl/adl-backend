@@ -8,6 +8,7 @@ module.exports = app => {
     router.post("/print-newcards",scratchCard.addCardBatchs);
     router.post("/available",scratchCard.getCardAvailableCounts);
     router.post("/unavailable",scratchCard.getCardUsedCounts);
+    router.get("/pro-count",scratchCard.overAllCount);
 
     app.use('/cards', router);
   };

@@ -1,4 +1,5 @@
 const UssdMenu = require('ussd-builder');
+
 let menu = new UssdMenu();
 
 const db = require("../models/index");
@@ -13,10 +14,15 @@ let foi;
 let arrayOfPacks = []
 let selectedPackage;
 
+const africastalking = require('africastalking')({
+    apiKey: process.env.AFRICA_TALKING_API_KEY,
+    username: process.env.AFRICA_TALKING_USERNAME
+});
+
 menu.startState({
     run: () => {
     // use menu.con() to send response without terminating session
-    menu.con('Welcome to ADL installment payments. Please follow the instruction' +
+    menu.con('Welcome to Agrigate installment payments. Please follow the instruction' +
     '\n1. To enter farmers phone number' +
     '\n2. Quit');
     },
@@ -141,58 +147,69 @@ menu.end("Goodbye :)");
 
 
 exports.welcomeFarmer = async (req, res) => {
-    // const query = {contact:"0706081432"}
-    // foi =  await Farmers.findOne(query);
-    // console.log(foi._id)
-    // let filter ={ $and: [{"cardNumber":10546923795083}, {"status":"used"} ]}
-    // let update = {"status":"used","farmer":foi._id}
-    // let doc = await sc.findOneAndUpdate(filter, update,{
-    //     new: true, useFindAndModify:false
-    // });
-    // if(doc){
-    //     console.log(foi.packages)
-    //     let newBal = (Number(foi.packages[0].balance) + Number(doc.amount))
-    //     packUpdate= {"balance": newBal}
-    //     newFarmerPackages = foi.packages
-    //     newFarmerPackages[0].balance = newBal
-    //     if(newBal >= Number(foi.packages[0].totalDue)){
-    //         packUpdate = {...packUpdate, "status":"complete"}
-    //         newFarmerPackages[0].balance = "complete"
-    //     }   
-    //     console.log(packUpdate)
-    //     //update
-    //     let updatedPack = await Packages.findByIdAndUpdate(foi.packages[0].packageID, packUpdate,{
-    //         new: true, useFindAndModify:false
-    //     });
-    //     console.log(updatedPack)
-    //     //update farmer
-    //     let updatedfoi = await Farmers.findByIdAndUpdate(foi._id, {"packages":newFarmerPackages},{
-    //         new: true, useFindAndModify:false
-    //     });
-    //     console.log("farmer")
-    //     console.log(updatedfoi)
-    //     //make transaction
-    //     const transaction = new Transactions({
-    //         payee: {
-    //         "name":foi.name,
-    //         "contact": foi.contact
-    //         },
-    //         package: updatedPack._id,
-    //         amount: Number(doc.amount),
-    //         reference: "xyz",
-    //       }); 
-    //     let save =  await transaction.save(transaction)
-    //     console.log(save)
-    //     let change = updatedPack.totalAmount - newBal
-    //     console.log(updatedPack.totalAmount)
-    //     console.log(newBal)
-    //     console.log(change)
-       
-    // }else{
-    //     console.log('invalid number')
-    // }
     menu.run(req.body, ussdResult  => {
         res.send(ussdResult);
     });
     
 };
+
+async function sendBulkSMS(recipients, message) {
+    try {
+      const sms = africastalking.SMS;
+      const options = {
+        to: recipients,
+        // from: 'Agrigate',
+        message: message
+      };
+      const response = await sms.send(options);
+      console.log(response);
+      return response;
+    } catch (error) {
+      console.error('Error sending SMS:', error);
+      throw error;
+    }
+  }
+  function extractPhoneNumbers(data) {
+    const numbers = [];
+  
+    for (let i = 0; i < data.length; i++) {
+      const contact = data[i].contact;
+      let phoneNumber = contact.replace(/\D/g, ''); // Remove non-digit characters
+  
+      if (phoneNumber.length > 0) {
+        if (phoneNumber.startsWith('0')) {
+          phoneNumber = '+256' + phoneNumber.slice(1);
+        } 
+  
+        numbers.push(phoneNumber);
+      }
+    }
+  
+    return numbers;
+  }
+  
+
+exports.sendMessages = async (req, res) => {
+  const { message } = req.body;
+  //fetch recipients
+  let recipients = [];
+  Farmers.find()
+  .then((data) => {
+    //sort list of numbers
+    recipients = extractPhoneNumbers(data);
+    // console.log(recipients)
+  })
+  .catch(() => {
+    res.status(500).send({
+      message: "Failed to fetch farmer contacts",
+      data:null
+    });
+  });
+  try {
+    const response = await sendBulkSMS(recipients, message);
+    res.json({ message:'Success', data:response });
+  } catch (error) {
+    res.status(500).json({ message:'Failed', data:null });
+  }
+};
+

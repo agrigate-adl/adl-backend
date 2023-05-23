@@ -1,7 +1,7 @@
-POST  http://localhost:7747/farmer/search-farmer
+POST   http://localhost:7747/ussd/v1/bulk-sms
 Content-Type: application/json
 
 {
-  "word":"0780543256"
+    "message": "Hello, test"
 }
 
