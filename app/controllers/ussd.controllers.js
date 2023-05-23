@@ -162,14 +162,13 @@ async function sendBulkSMS(recipients, message) {
         message: message
       };
       const response = await sms.send(options);
-      console.log(response);
       return response;
     } catch (error) {
-      console.error('Error sending SMS:', error);
+      //console.error('Error sending SMS:', error);
       throw error;
     }
   }
-  function extractPhoneNumbers(data) {
+  async function extractPhoneNumbers(data) {
     const numbers = [];
   
     for (let i = 0; i < data.length; i++) {
@@ -194,10 +193,16 @@ exports.sendMessages = async (req, res) => {
   //fetch recipients
   let recipients = [];
   Farmers.find()
-  .then((data) => {
+  .then(async (data) => {
     //sort list of numbers
-    recipients = extractPhoneNumbers(data);
+    recipients = await extractPhoneNumbers(data);
     // console.log(recipients)
+    try {
+      const response = await sendBulkSMS(recipients, message);
+      res.json({ message:'Success', data:response });
+    } catch (error) {
+      res.status(500).json({ message:'Failed', data:null });
+    }
   })
   .catch(() => {
     res.status(500).send({
@@ -205,11 +210,6 @@ exports.sendMessages = async (req, res) => {
       data:null
     });
   });
-  try {
-    const response = await sendBulkSMS(recipients, message);
-    res.json({ message:'Success', data:response });
-  } catch (error) {
-    res.status(500).json({ message:'Failed', data:null });
-  }
+ 
 };
 
