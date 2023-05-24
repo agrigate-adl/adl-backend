@@ -203,8 +203,7 @@ exports.sendMessages = async (req, res) => {
     } catch (error) {
       res.status(500).json({ message:'Failed', data:null });
     }
-  })
-  .catch(() => {
+  }).catch(() => {
     res.status(500).send({
       message: "Failed to fetch farmer contacts",
       data:null

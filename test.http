@@ -5,3 +5,4 @@ Content-Type: application/json
     "message": "Hello, test"
 }
 
+# sends to all farmers
