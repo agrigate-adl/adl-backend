@@ -146,6 +146,15 @@
 `GET  http://localhost:7747/packages/639de1fe1b52d32434369c5b`
 `Content-Type: application/json`
 
+### Bulk sms
+`POST   http://localhost:7747/ussd/v1/bulk-sms`
+`Content-Type: application/json`
+```json
+{
+    "message": "Hello, test"
+}
+```
+
 ### add a package
 
 `POST  http://localhost:7747/packages/add-package`
