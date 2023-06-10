@@ -2,7 +2,9 @@ POST   http://localhost:7747/ussd/v1/bulk-sms
 Content-Type: application/json
 
 {
-    "message": "Hello, test"
+    "message": "Hello, test",
+    "selected": true,
+    "farmers":["0706081432"]
 }
 
 # sends to all farmers

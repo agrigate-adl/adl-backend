@@ -186,12 +186,31 @@ async function sendBulkSMS(recipients, message) {
   
     return numbers;
   }
+
+  async function extractSentPhoneNumbers(data) {
+    const numbers = [];
+  
+    for (let i = 0; i < data.length; i++) {
+      let phoneNumber = data[i].replace(/\D/g, ''); // Remove non-digit characters
+  
+      if (phoneNumber.length > 0) {
+        if (phoneNumber.startsWith('0')) {
+          phoneNumber = '+256' + phoneNumber.slice(1);
+        } 
+  
+        numbers.push(phoneNumber);
+      }
+    }
+  
+    return numbers;
+  }
   
 
 exports.sendMessages = async (req, res) => {
-  const { message } = req.body;
+  const { message,selected,farmers} = req.body;
   //fetch recipients
   let recipients = [];
+  if(selected ===false){
   Farmers.find()
   .then(async (data) => {
     //sort list of numbers
@@ -208,7 +227,16 @@ exports.sendMessages = async (req, res) => {
       message: "Failed to fetch farmer contacts",
       data:null
     });
-  });
  
+  });
+}else{
+  recipients = await extractSentPhoneNumbers(farmers);
+    try {
+      const response = await sendBulkSMS(recipients, message);
+      res.json({ message:'Success', data:response });
+    } catch (error) {
+      res.status(500).json({ message:'Failed', data:null });
+    }
+}
 };
 
