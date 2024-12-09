@@ -8,9 +8,9 @@ module.exports = app => {
     router.post("/add-farmer",farmers.addFarmer);
     router.get("/",farmers.getAllFarmers);
     router.get("/:id",farmers.getFarmer);
+    router.get("/users/:contact", farmers.getFarmerByContact);
     router.patch("/:id",farmers.editFarmer)
     router.delete("/:id", farmers.deleteFarmer);
     router.post("/search-farmer", farmers.searchkey);
-    
     app.use('/farmer', router);
   };
