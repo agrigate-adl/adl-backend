@@ -123,7 +123,56 @@ exports.deletePackage = async (req, res) => {
 };
 
 
-// change farmer package too
+// Editting the package ..
+
 exports.editPackage = async (req, res) => {
-   
-}
+  const { id } = req.params; 
+  const { name, owner, totalAmount, products } = req.body; 
+
+  if (!(id && (name || owner || totalAmount || products))) {
+    return res.status(400).send({ message: "Invalid input. Provide package ID and fields to update." });
+  }
+
+  try {
+
+    const package = await Packages.findById(id);
+    if (!package) {
+      return res.status(404).send({ message: "Package not found" });
+    }
+
+    if (name) package.name = name;
+    if (owner) package.owner = owner;
+    if (totalAmount) package.totalAmount = totalAmount;
+    if (products) package.products = products;
+
+    // Save the updated package ..
+    await package.save();
+
+    const ownerFarm = await Farmers.findById(package.owner);
+    if (ownerFarm) {
+      const packageIndex = ownerFarm.packages.findIndex(p => p._id === id);
+      if (packageIndex !== -1) {
+        if (name) ownerFarm.packages[packageIndex].name = name;
+        if (totalAmount) ownerFarm.packages[packageIndex].totalDue = totalAmount;
+
+        if (products) {
+          const productNames = products.map(p => `${p.count} of-${p.name} @${p.price}`);
+          ownerFarm.packages[packageIndex].products = productNames;
+        }
+
+        // Save the updated farmer details ..
+        await ownerFarm.save();
+      }
+    }
+    res.status(200).send({
+      message: "Package updated successfully",
+      data: package,
+    });
+  } catch (err) {
+    // Handle errors
+    res.status(500).send({
+      message: "Failed to update package",
+      error: err.message,
+    });
+  }
+};

@@ -167,3 +167,26 @@ exports.searchkey =(req,res) => {
     }
 };
 
+
+exports.getFarmerByContact = async (req, res) => {
+  try {
+  
+    const { contact } = req.params; 
+
+    if (!contact) {
+      return res.status(400).send({ message: "Contact is required" });
+    }
+
+    const farmer = await Farmers.findOne({ contact });
+
+    if (farmer) {
+      return res.status(200).json({ message: "Farmer found", data: farmer });
+    } else {
+      return res.status(404).send({ message: "No Farmer found with the provided contact" });
+    }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).send({ message: "An error occurred", error: err.message });
+  }
+};
+
