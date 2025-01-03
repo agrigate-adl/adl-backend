@@ -125,11 +125,60 @@ exports.deletePackage = async (req, res) => {
 
 // Editting the package ..
 
-exports.editPackage = async (req, res) => {
-  const { id } = req.params; 
-  const { name, owner, totalAmount, products } = req.body; 
+// exports.editPackage = async (req, res) => {
+//   const { id } = req.params; 
+//   const { name, owner, totalAmount, products } = req.body; 
 
-  if (!id || (!name && !owner && !totalAmount && !products)) {
+//   if (!id || (!name && !owner && !totalAmount && !products)) {
+//     return res.status(400).send({ message: "Invalid input. Provide package ID and fields to update." });
+//   }
+
+//   try {
+//     const package = await Packages.findById(id);
+//     if (!package) {
+//       return res.status(404).send({ message: "Package not found" });
+//     }
+
+//     // Update package fields
+//     if (name) package.name = name;
+//     if (owner) package.owner = owner;
+//     if (totalAmount) package.totalAmount = totalAmount;
+//     if (products) package.products = products;
+
+//     await package.save(); // Save updated package
+
+//     // Update farmer's package information if needed
+//     const ownerFarm = await Farmers.findById(package.owner);
+//     if (ownerFarm) {
+//       const packageIndex = ownerFarm.packages.findIndex(p => p.packageID.toString() === id);
+//       if (packageIndex !== -1) {
+//         if (name) ownerFarm.packages[packageIndex].name = name;
+//         if (totalAmount) ownerFarm.packages[packageIndex].totalDue = totalAmount;
+//         if (products) {
+//           const productNames = products.map(p => `${p.count} of-${p.name} @${p.price}`);
+//           ownerFarm.packages[packageIndex].products = productNames;
+//         }
+//         await ownerFarm.save(); // Save updated farmer
+//       }
+//     }
+
+//     res.status(200).send({
+//       message: "Package updated successfully",
+//       data: package,
+//     });
+//   } catch (err) {
+//     res.status(500).send({
+//       message: "Failed to update package",
+//       error: err.message,
+//     });
+//   }
+// };
+
+exports.editPackage = async (req, res) => {
+  const { id } = req.params;
+  const { name, owner, totalAmount, products } = req.body;
+
+  if (!id || (!name  && !totalAmount && !products)) {
     return res.status(400).send({ message: "Invalid input. Provide package ID and fields to update." });
   }
 
@@ -139,28 +188,35 @@ exports.editPackage = async (req, res) => {
       return res.status(404).send({ message: "Package not found" });
     }
 
-    // Update package fields
     if (name) package.name = name;
-    if (owner) package.owner = owner;
-    if (totalAmount) package.totalAmount = totalAmount;
-    if (products) package.products = products;
+    if (products) package.products = products
+    if (totalAmount) package.totalAmount = totalAmount
+    
+    package.updatedAt = new Date();
 
-    await package.save(); // Save updated package
+    await package.save(); 
 
     // Update farmer's package information if needed
     const ownerFarm = await Farmers.findById(package.owner);
     if (ownerFarm) {
-      const packageIndex = ownerFarm.packages.findIndex(p => p.packageID.toString() === id);
-      if (packageIndex !== -1) {
-        if (name) ownerFarm.packages[packageIndex].name = name;
-        if (totalAmount) ownerFarm.packages[packageIndex].totalDue = totalAmount;
-        if (products) {
-          const productNames = products.map(p => `${p.count} of-${p.name} @${p.price}`);
-          ownerFarm.packages[packageIndex].products = productNames;
+      const updatedPackages = ownerFarm.packages.map(p => {
+        if (p.packageID.toString() === id) {
+          return {
+            ...p,
+            ...(name && { name }), 
+            ...(totalAmount && { totalDue: totalAmount }), 
+            ...(products && {
+              products: products.map(p => `${p.count} of ${p.name} @${p.price}`)
+            }), 
+            updatedAt: package.updatedAt 
+          };
         }
-        await ownerFarm.save(); // Save updated farmer
+        return p; // Keep other packages unchanged
+      });
+      ownerFarm.packages = updatedPackages;
+      await ownerFarm.save();
       }
-    }
+    
 
     res.status(200).send({
       message: "Package updated successfully",

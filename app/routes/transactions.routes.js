@@ -6,7 +6,11 @@ module.exports = app => {
     var router = require("express").Router(); 
     
     router.get("/",transactions.getAllTransactions);
+    router.post("/monthly_data",transactions.getMonthlyTransactions);
     router.get("/:id",transactions.getTransactions);
+  
+
+    // user transactions
 
     app.use('/transactions', router);
   };

@@ -190,3 +190,32 @@ exports.getFarmerByContact = async (req, res) => {
   }
 };
 
+
+exports.getFarmersByAdderID = async (req, res) => {
+  const { adderID } = req.params;
+
+  if (!adderID) {
+    return res.status(400).send({ message: "Adder ID is required" });
+  }
+
+  try {
+    const farmers = await Farmers.find({ adderID });
+
+    if (farmers.length > 0) {
+      return res.status(200).send({
+        message: "Farmers retrieved successfully",
+        data: farmers,
+      });
+    } else {
+      return res.status(404).send({
+        message: "No farmers found for the specified adder ID",
+        data: null,
+      });
+    }
+  } catch (error) {
+    return res.status(500).send({
+      message: "An error occurred while retrieving farmers",
+      error: error.message,
+    });
+  }
+};
