@@ -12,5 +12,12 @@ module.exports = app => {
     router.patch("/:id",farmers.editFarmer)
     router.delete("/:id", farmers.deleteFarmer);
     router.post("/search-farmer", farmers.searchkey);
+    router.get("/agent/:adderID", farmers.getFarmersByAdderID);
+    
     app.use('/farmer', router);
+
+    // get farmers by agent
+
+    // get farmer
+
   };
