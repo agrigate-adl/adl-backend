@@ -7,6 +7,7 @@ module.exports = app => {
     
     router.get("/",transactions.getAllTransactions);
     router.post("/monthly_data",transactions.getMonthlyTransactions);
+    router.post("/farmer/:contact",transactions.getTransactionsByContact);
     router.get("/:id",transactions.getTransactions);
   
 

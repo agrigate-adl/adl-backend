@@ -2,6 +2,7 @@
 const db = require("../models/index");
 
 const Transactions  = db.Transactions;
+const Farmers =  db.Farmers
 
 exports.getTransactions = async (req, res) => {
     const id = req.params.id;
@@ -76,3 +77,31 @@ exports.getMonthlyTransactions = async (req, res) => {
   }
 };
 
+
+exports.getTransactionsByContact = async (req, res) => {
+  const { contact } = req.params;
+
+  if (!contact) {
+    return res.status(400).send({ message: 'Contact is required' });
+  }
+
+  try {
+    
+    const farmer = await Farmers.findOne({ contact });
+    if (!farmer) {
+      return res.status(404).send({ message: 'Farmer not found' });
+    }
+
+    const transactions = await Transactions.find({ "payee.contact": farmer.contact });
+
+    res.status(200).send({
+      message: 'Transactions retrieved successfully',
+      data: transactions,
+    });
+  } catch (error) {
+    res.status(500).send({
+      message: 'Failed to retrieve transactions',
+      error: error.message,
+    });
+  }
+};
