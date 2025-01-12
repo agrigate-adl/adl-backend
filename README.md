@@ -200,3 +200,6 @@
 
 `GET  http://localhost:7747/admin/63951402f06f6e1f94df0dc0`
 `Content-Type: application/json`
+
+
+### credit system
