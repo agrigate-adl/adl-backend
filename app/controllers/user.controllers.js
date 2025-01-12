@@ -132,6 +132,10 @@ exports.login = async (req, res) => {
  try {
   // Get user input
   const { email, password } = req.body;
+  console.log("Request Body:", req.body);
+
+  console.log("Received Email:", email);
+  console.log("Received Password:", password);
 
   // Validate user input
   if (!(email && password)) {
