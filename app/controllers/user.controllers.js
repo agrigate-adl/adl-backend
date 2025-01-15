@@ -132,10 +132,6 @@ exports.login = async (req, res) => {
  try {
   // Get user input
   const { email, password } = req.body;
-  console.log("Request Body:", req.body);
-
-  console.log("Received Email:", email);
-  console.log("Received Password:", password);
 
   // Validate user input
   if (!(email && password)) {
@@ -182,6 +178,30 @@ exports.getAdmin = (req, res) => {
   });
 };
 
+exports.getAllUsers = async (req, res) => {
+  try {
+    console.log("Fetching users..."); // Log start
+    const data = await Users.find(); // Fetch users
+    console.log("Users fetched:", data); // Log result
+
+    if (data.length === 0) {
+      return res.status(404).send({ message: "No users found" });
+    }
+
+    res.status(200).json({
+      message: "success",
+      data: data,
+    });
+  } catch (err) {
+    console.error("Error in getAllUsers:", err.message); // Detailed logging
+    res.status(500).send({
+      message: "Internal Server Error",
+      error: err.message,
+    });
+  }
+};
+
+
 exports.getUserByContact = async (req, res) => {
   try {
   
@@ -203,6 +223,8 @@ exports.getUserByContact = async (req, res) => {
     return res.status(500).send({ message: "An error occurred", error: err.message });
   }
 };
+
+
 
 
 
