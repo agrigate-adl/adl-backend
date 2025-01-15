@@ -4,6 +4,8 @@ const bcrypt = require("bcrypt");
 const jwt = require('jsonwebtoken');
 const nodemailer = require("nodemailer");
 const Handlefailure = require("../../middleware/failureHandler");
+const mongoose = require('mongoose');
+const ObjectId = mongoose.Types.ObjectId;
 
 "use strict";
 
@@ -199,6 +201,21 @@ exports.getAllUsers = async (req, res) => {
       error: err.message,
     });
   }
+};
+
+exports.deleteAgent = async (req, res) => {
+  const id = req.params.id;
+  console.log('Deleting agent with ID:', id);
+  try {
+  await Users.deleteOne( { "_id" : ObjectId(id) } );
+  res.status(200).send({
+    message: "deleted Agent successfully",
+  });
+ } catch (e) {
+  res.status(500).send({
+    message: "failed to delete agent",
+  });
+ }
 };
 
 
