@@ -46,6 +46,54 @@ function sendAgentRegistrationEmail(name, email, password) {
   });
 }
 
+// sms api
+const africastalking = require('africastalking')({
+  apiKey: process.env.AFRICA_TALKING_API_KEY,
+  username: process.env.AFRICA_TALKING_USERNAME
+});
+
+// format phone to international
+function formatPhoneNumber(phone) {
+  // Remove any non-digit characters
+  const cleaned = phone.replace(/\D/g, '');
+
+  // Check if the number starts with 0 (local format)
+  if (cleaned.startsWith('0')) {
+    return `+256${cleaned.slice(1)}`; // Replace leading 0 with +256
+  }
+
+  // If already in international format, return as is
+  if (cleaned.startsWith('256')) {
+    return `+${cleaned}`;
+  }
+
+  // Otherwise, assume it's invalid
+  throw new Error('Invalid phone number format');
+}
+
+
+// otp generation
+const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+
+
+// send otp
+async function sendOTP(contact, otp) {
+  try {
+    const sms = africastalking.SMS;
+    const formattedContact = formatPhoneNumber(contact);
+    const message = `Your OTP is ${otp}. It is valid for 10 minutes.`;
+    const options = {
+      to: formattedContact,
+      message: message,
+    };
+    const response = await sms.send(options);
+    console.log(`OTP sent to ${formatPhoneNumber}:`, response);
+    return response;
+  } catch (error) {
+    console.error(`Error sending OTP to ${formatPhoneNumber}:`, error);
+    throw error;
+  }
+}
 
 exports.Createuser = async (req, res) => {
    try {
@@ -132,46 +180,82 @@ exports.Createagent = async (req, res) => {
  }
 };
 
+// Login function with OTP generation
 exports.login = async (req, res) => {
- // Our login logic starts here
- try {
-  // Get user input
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  // Validate user input
-  if (!(email && password)) {
-    return  res.status(400).send({message:"All input is required"});
-  }
-  // Validate if user exist in our database
-  const user = await Users.findOne({ email });
+    if (!(email && password)) {
+      return res.status(400).send({ message: "All input is required" });
+    }
 
-  if (!user) {
-    return res.status(400).send({ message: "Invalid Credentials" });
-  }
+    const user = await Users.findOne({ email });
 
-  // Check if the user is suspended
-  if (user.suspended) {
-    return res.status(403).send({ message: "Your account is suspended. Please contact support." });
-  }
+    if (!user) {
+      return res.status(400).send({ message: "Invalid Credentials" });
+    }
 
-  if (user && (await bcrypt.compare(password, user.password))) {
-    // Create token
-    const token = jwt.sign(
-      { user_id: user._id, email },
-      process.env.JWT_SECRET_KEY,
-      {
-        expiresIn: "12h",
-      }
-    );
-    return  res.status(200).json({user,
-     token
-    });
+    if (user.suspended) {
+      return res.status(403).send({ message: "Your account is suspended. Please contact support." });
+    }
+
+    if (user && (await bcrypt.compare(password, user.password))) {
+      const otp = generateOTP();
+      const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // OTP expires in 10 minutes
+
+      user.otp = otp;
+      user.otpExpires = otpExpires;
+      await user.save();
+
+      await sendOTP(user.contact, otp);
+
+      return res.status(200).send({
+        message: "OTP sent to registered contact number",
+        userId: user._id,
+      });
+    } else {
+      return res.status(400).send({ message: "Invalid Credentials" });
+    }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).send({ error: "An error occurred" });
   }
-  res.status(400).send({messege:"Invalid Credentials"});
-} catch (err) {
-  console.log(err);
-  return res.status(err.status).json({error: err.message});
-}
+};
+
+// OTP verification function
+exports.verifyOTP = async (req, res) => {
+  try {
+    const { userId, otp } = req.body;
+
+    if (!(userId && otp)) {
+      return res.status(400).send({ message: "User ID and OTP are required" });
+    }
+
+    const user = await Users.findById(userId);
+
+    if (!user) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    if (user.otp === otp && user.otpExpires > new Date()) {
+      const token = jwt.sign(
+        { user_id: user._id, email: user.email },
+        process.env.JWT_SECRET_KEY,
+        { expiresIn: "12h" }
+      );
+
+      user.otp = null; // Clear OTP after successful verification
+      user.otpExpires = null;
+      await user.save();
+
+      return res.status(200).send({ message: "Login successful", token });
+    } else {
+      return res.status(400).send({ message: "Invalid or expired OTP" });
+    }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).send({ error: "An error occurred" });
+  }
 };
 
 exports.getAdmin = (req, res) => {

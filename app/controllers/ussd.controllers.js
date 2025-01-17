@@ -168,6 +168,7 @@ async function sendBulkSMS(recipients, message) {
       throw error;
     }
   }
+  
   async function extractPhoneNumbers(data) {
     const numbers = [];
   
