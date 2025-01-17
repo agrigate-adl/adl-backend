@@ -144,8 +144,12 @@ exports.login = async (req, res) => {
   // Validate if user exist in our database
   const user = await Users.findOne({ email });
 
-   // Check if the user is suspended
-   if (user.suspended) {
+  if (!user) {
+    return res.status(400).send({ message: "Invalid Credentials" });
+  }
+
+  // Check if the user is suspended
+  if (user.suspended) {
     return res.status(403).send({ message: "Your account is suspended. Please contact support." });
   }
 
