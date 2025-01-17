@@ -8,7 +8,8 @@ module.exports = mongoose => {
           name: String,
           contact: String,
           password: String,
-          role: String
+          role: String,
+          suspended: { type: Boolean, default: false },
         },
         { timestamps: true }
       )

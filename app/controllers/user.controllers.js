@@ -70,6 +70,7 @@ exports.Createuser = async (req, res) => {
       role:'admin',
       email: email.toLowerCase(), // sanitize: convert email to lowercase
       password: encryptedPassword,
+      suspended: false,
     });
 
     // Create token
@@ -115,6 +116,7 @@ exports.Createagent = async (req, res) => {
      role:'agent',
      email: email.toLowerCase(), // sanitize: convert email to lowercase
      password: encryptedPassword,
+     suspended: false,
    });
 
    sendAgentRegistrationEmail(user.name, user.email, password);
@@ -141,6 +143,11 @@ exports.login = async (req, res) => {
   }
   // Validate if user exist in our database
   const user = await Users.findOne({ email });
+
+   // Check if the user is suspended
+   if (user.suspended) {
+    return res.status(403).send({ message: "Your account is suspended. Please contact support." });
+  }
 
   if (user && (await bcrypt.compare(password, user.password))) {
     // Create token
@@ -182,9 +189,9 @@ exports.getAdmin = (req, res) => {
 
 exports.getAllUsers = async (req, res) => {
   try {
-    console.log("Fetching users..."); // Log start
+    /* console.log("Fetching users..."); // Log start */
     const data = await Users.find(); // Fetch users
-    console.log("Users fetched:", data); // Log result
+    /* console.log("Users fetched:", data); // Log result */
 
     if (data.length === 0) {
       return res.status(404).send({ message: "No users found" });
@@ -195,7 +202,7 @@ exports.getAllUsers = async (req, res) => {
       data: data,
     });
   } catch (err) {
-    console.error("Error in getAllUsers:", err.message); // Detailed logging
+    /* console.error("Error in getAllUsers:", err.message); // Detailed logging */
     res.status(500).send({
       message: "Internal Server Error",
       error: err.message,
@@ -205,7 +212,7 @@ exports.getAllUsers = async (req, res) => {
 
 exports.deleteAgent = async (req, res) => {
   const id = req.params.id;
-  console.log('Deleting agent with ID:', id);
+  /* console.log('Deleting agent with ID:', id); */
   try {
   await Users.deleteOne( { "_id" : ObjectId(id) } );
   res.status(200).send({
@@ -216,6 +223,44 @@ exports.deleteAgent = async (req, res) => {
     message: "failed to delete agent",
   });
  }
+};
+
+exports.suspendAgent = async (req, res) => {
+  const id = req.params.id;
+
+  try {
+    await Users.updateOne(
+      { _id: ObjectId(id) },
+      { $set: { suspended: true } }
+    );
+
+    res.status(200).send({
+      message: "Agent suspended successfully",
+    });
+  } catch (e) {
+    res.status(500).send({
+      message: "Failed to suspend agent",
+    });
+  }
+};
+
+exports.unsuspendAgent = async (req, res) => {
+  const id = req.params.id;
+
+  try {
+    await Users.updateOne(
+      { _id: ObjectId(id) },
+      { $set: { suspended: false } }
+    );
+
+    res.status(200).send({
+      message: "Agent unsuspended successfully",
+    });
+  } catch (e) {
+    res.status(500).send({
+      message: "Failed to unsuspend agent",
+    });
+  }
 };
 
 

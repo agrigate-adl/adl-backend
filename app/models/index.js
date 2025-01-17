@@ -14,6 +14,7 @@ db.Products = require("./product.model.js")(mongoose);
 db.ScratchCards = require("./scratchCard.model.js")(mongoose);
 db.Transactions = require("./transactions.model.js")(mongoose);
 db.Counters = require("./counters.model.js")(mongoose);
+db.Credit = require("./credit.model.js")(mongoose);
 
 
 module.exports = db;
