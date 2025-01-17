@@ -9,7 +9,7 @@ module.exports = mongoose => {
 
               address: { type: String, required: true },
               amount: { type: Number, required: true },
-              balance: { type: Number, required: true },
+              /* balance: { type: Number, required: true }, */
               paymentPeriod: { type: Number, required: true }, // in months
               interestRate: { type: Number, required: true }, // percentage
               creditType: { type: String, required: true },
