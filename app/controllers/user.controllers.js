@@ -46,6 +46,7 @@ function sendAgentRegistrationEmail(name, email, password) {
   });
 }
 
+
 exports.Createuser = async (req, res) => {
    try {
     // Get user input
