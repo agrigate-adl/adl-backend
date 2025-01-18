@@ -87,10 +87,10 @@ async function sendOTP(contact, otp) {
       message: message,
     };
     const response = await sms.send(options);
-    console.log(`OTP sent to ${formatPhoneNumber}:`, response);
+    console.log(`OTP sent to ${formattedContact}:`, JSON.stringify(response, null, 2));
     return response;
   } catch (error) {
-    console.error(`Error sending OTP to ${formatPhoneNumber}:`, error);
+    console.error(`Error sending OTP to ${formattedContact}:`, error.message);
     throw error;
   }
 }
