@@ -250,7 +250,15 @@ exports.verifyOTP = async (req, res) => {
       user.otpExpires = null;
       await user.save();
 
-      return res.status(200).send({ message: "Login successful", token });
+      return res.status(200).send({ 
+        message: "Login successful", 
+        token, 
+        user : {
+          id: user._id,
+          email: user.email,
+          role: user.role,
+        }
+      });
     } else {
       return res.status(400).send({ message: "Invalid or expired OTP" });
     }
