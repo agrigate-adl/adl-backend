@@ -126,27 +126,20 @@ exports.deleteProduct = async (req, res) => {
  }
 };
 
-exports.editProduct = async (req, res) => {
-  const id = req.params.id; // Get product ID from request parameters
-  const { name, price, description } = req.body; // Extract fields to update
+exports.editPrice = async (req, res) => {
+  const { id } = req.params;
+  const { price } = req.body;  // The new price
 
-  // Ensure at least one field is provided for update
-  if (!name && !price && !description) {
-    return res.status(400).send({ message: "At least one field is required to update the product." });
+  // Validate input
+  if (!price) {
+    return res.status(400).send({ message: "New price is required." });
   }
 
   try {
-    // Dynamically construct the update object based on provided fields
-    const updates = {};
-    if (name) updates.name = name;
-    if (price) updates.unitPrice = price; // Ensure the correct field name in the database
-    if (description) updates.description = description;
-
-    // Update product by ID
     const updatedProduct = await Products.findByIdAndUpdate(
-      id,
-      updates,
-      { new: true, useFindAndModify: false } // Return the updated document
+      id, 
+      { unitPrice: price }, 
+      { new: true } // return the updated document
     );
 
     if (!updatedProduct) {
@@ -154,12 +147,14 @@ exports.editProduct = async (req, res) => {
     }
 
     res.status(200).send({
-      message: "Product updated successfully.",
+      message: "Price updated successfully.",
       data: updatedProduct,
     });
   } catch (error) {
-    console.error("Error updating product:", error.message);
-    res.status(500).send({ message: "An error occurred while updating the product." });
+    res.status(500).send({
+      message: "An error occurred while updating the product price.",
+      error: error.message,
+    });
   }
 };
 

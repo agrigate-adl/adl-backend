@@ -1,4 +1,3 @@
-
 module.exports = mongoose => {
   const Products = mongoose.model(
     "Products",
