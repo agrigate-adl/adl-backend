@@ -127,5 +127,36 @@ exports.deleteProduct = async (req, res) => {
 };
 
 exports.editProduct = async (req, res) => {
+  const id = req.params.id; // Get product ID from the request parameters
+  const { name, price, description } = req.body; // Extract fields to update
 
-}
+  // Validate input
+  if (!(name || price || description)) {
+    return res.status(400).send({ message: "At least one field is required to update the product." });
+  }
+
+  try {
+    // Find the product by ID and update the fields
+    const updatedProduct = await Products.findByIdAndUpdate(
+      id,
+      {
+        ...(name && { name }),
+        ...(price && { unitPrice: price }),
+        ...(description && { description }),
+      },
+      { new: true, useFindAndModify: false } // Return the updated product
+    );
+
+    if (!updatedProduct) {
+      return res.status(404).send({ message: "Product not found." });
+    }
+
+    res.status(200).send({
+      message: "Product updated successfully.",
+      data: updatedProduct,
+    });
+  } catch (error) {
+    console.error("Error updating product:", error.message);
+    res.status(500).send({ message: "An error occurred while updating the product." });
+  }
+};

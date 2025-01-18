@@ -10,6 +10,7 @@ module.exports = app => {
     router.get("/:id",products.getProduct);
     router.patch("/:id",products.editProduct)
     router.delete("/:id",products.deleteProduct)
+    router.patch("/:id", products.editProduct)
 
     app.use('/products', router);
   };
