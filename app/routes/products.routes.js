@@ -8,7 +8,6 @@ module.exports = app => {
     router.post("/add-product",products.addProduct);
     router.get("/",products.getAllProducts);
     router.get("/:id",products.getProduct);
-    router.patch("/:id",products.editProduct)
     router.delete("/:id",products.deleteProduct)
     router.patch("/:id", products.editProduct)
 
