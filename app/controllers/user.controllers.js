@@ -81,7 +81,9 @@ async function sendOTP(contact, otp) {
   try {
     const sms = africastalking.SMS;
     const formattedContact = formatPhoneNumber(contact);
-    const message = `Your OTP is ${otp}. It is valid for 10 minutes.`;
+    const message = `Hello, Your OTP is ${otp}.Please enter this code within the next 10 minutes. 
+    If you did not request this, 
+    please ignore this message. Thank you.`;
     const options = {
       to: formattedContact,
       message: message,
