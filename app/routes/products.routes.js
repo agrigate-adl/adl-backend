@@ -9,7 +9,7 @@ module.exports = app => {
     router.get("/",products.getAllProducts);
     router.get("/:id",products.getProduct);
       // Update price
-  router.patch("/:id/price", products.editPrice);
+  router.put("/:id/price", products.editPrice);
     router.delete("/:id",products.deleteProduct)
 /*     router.patch("/:id", products.editProduct) */
 
