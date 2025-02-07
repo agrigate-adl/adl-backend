@@ -230,7 +230,7 @@ exports.sendMessages = async (req, res) => {
     });
  
   });
-}else{
+} else {
   recipients = await extractSentPhoneNumbers(farmers);
     try {
       const response = await sendBulkSMS(recipients, message);

@@ -257,6 +257,7 @@ exports.verifyOTP = async (req, res) => {
           id: user._id,
           email: user.email,
           role: user.role,
+          name: user.name,
         }
       });
     } else {
