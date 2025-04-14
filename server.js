@@ -35,6 +35,7 @@ require("./app/routes/products.routes")(app);
 require("./app/routes/transactions.routes")(app);
 require("./app/routes/ussd.routes")(app);
 require("./app/routes/mobileMoney.routes")(app); // Add mobile money routes
+require("./app/routes/credit.routes")(app);
 
 // Set port, listen for requests
 const PORT = process.env.PORT || 8080;

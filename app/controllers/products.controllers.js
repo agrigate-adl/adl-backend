@@ -126,6 +126,35 @@ exports.deleteProduct = async (req, res) => {
  }
 };
 
-exports.editProduct = async (req, res) => {
+exports.editPrice = async (req, res) => {
+  const { id } = req.params;
+  const { price } = req.body;  // The new price
 
-}
+  // Validate input
+  if (!price) {
+    return res.status(400).send({ message: "New price is required." });
+  }
+
+  try {
+    const updatedProduct = await Products.findByIdAndUpdate(
+      id, 
+      { unitPrice: price }, 
+      { new: true } // return the updated document
+    );
+
+    if (!updatedProduct) {
+      return res.status(404).send({ message: "Product not found." });
+    }
+
+    res.status(200).send({
+      message: "Price updated successfully.",
+      data: updatedProduct,
+    });
+  } catch (error) {
+    res.status(500).send({
+      message: "An error occurred while updating the product price.",
+      error: error.message,
+    });
+  }
+};
+

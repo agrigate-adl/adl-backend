@@ -213,9 +213,9 @@ async function sendBulkSMS(recipients, message) {
     } catch (error) {
         throw error;
     }
-}
-
-async function extractPhoneNumbers(data) {
+  }
+  
+  async function extractPhoneNumbers(data) {
     const numbers = [];
     for (let i = 0; i < data.length; i++) {
         const contact = data[i].contact;
@@ -245,31 +245,34 @@ async function extractSentPhoneNumbers(data) {
 }
 
 exports.sendMessages = async (req, res) => {
-    const { message, selected, farmers } = req.body;
-    let recipients = [];
-    if (selected === false) {
-        Farmers.find()
-            .then(async (data) => {
-                recipients = await extractPhoneNumbers(data);
-                try {
-                    const response = await sendBulkSMS(recipients, message);
-                    res.json({ message: 'Success', data: response });
-                } catch (error) {
-                    res.status(500).json({ message: 'Failed', data: null });
-                }
-            }).catch(() => {
-                res.status(500).send({
-                    message: "Failed to fetch farmer contacts",
-                    data: null
-                });
-            });
-    } else {
-        recipients = await extractSentPhoneNumbers(farmers);
-        try {
-            const response = await sendBulkSMS(recipients, message);
-            res.json({ message: 'Success', data: response });
-        } catch (error) {
-            res.status(500).json({ message: 'Failed', data: null });
-        }
+  const { message,selected,farmers} = req.body;
+  //fetch recipients
+  let recipients = [];
+  if(selected ===false){
+  Farmers.find()
+  .then(async (data) => {
+    //sort list of numbers
+    recipients = await extractPhoneNumbers(data);
+    // console.log(recipients)
+    try {
+      const response = await sendBulkSMS(recipients, message);
+      res.json({ message:'Success', data:response });
+    } catch (error) {
+      res.status(500).json({ message:'Failed', data:null });
+    }
+  }).catch(() => {
+    res.status(500).send({
+      message: "Failed to fetch farmer contacts",
+      data:null
+    });
+ 
+  });
+} else {
+  recipients = await extractSentPhoneNumbers(farmers);
+    try {
+      const response = await sendBulkSMS(recipients, message);
+      res.json({ message:'Success', data:response });
+    } catch (error) {
+      res.status(500).json({ message:'Failed', data:null });
     }
 };
