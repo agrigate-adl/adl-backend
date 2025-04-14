@@ -275,4 +275,5 @@ exports.sendMessages = async (req, res) => {
     } catch (error) {
       res.status(500).json({ message:'Failed', data:null });
     }
+}
 };
