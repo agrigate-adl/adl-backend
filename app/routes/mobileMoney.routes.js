@@ -13,6 +13,8 @@ module.exports = app => {
     // NEW: IPN routes (both GET and POST for Pesapal compatibility)
     router.post("/ipn", mobileMoney.handleIPN);
     router.get("/ipn", mobileMoney.handleIPN);
+
+    router.get("/test-ipn-list", mobileMoney.testGetIPNList);
     
     app.use('/mobile-money', router);
 };

@@ -98,6 +98,43 @@ const getPesapalToken = async () => {
     }
 };
 
+// Get IPN ID from registered IPN URLs
+const getIPNId = async () => {
+    try {
+        const config = getPesapalConfig();
+        const token = await getPesapalToken();
+        
+        const response = await axios.get(
+            `${config.API_URL}/URLSetup/GetIpnList`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json'
+                }
+            }
+        );
+        
+        console.log('IPN List response:', response.data);
+        
+        // Find the IPN ID for our registered URL
+        if (response.data && Array.isArray(response.data)) {
+            const ipnEntry = response.data.find(ipn => 
+                ipn.url === `${config.BASE_URL}/mobile-money/ipn`
+            );
+            
+            if (ipnEntry && ipnEntry.ipn_id) {
+                console.log('Found IPN ID:', ipnEntry.ipn_id);
+                return ipnEntry.ipn_id;
+            }
+        }
+        
+        throw new Error('IPN ID not found for registered URL');
+    } catch (error) {
+        console.error('Error getting IPN ID:', error.response?.data || error.message);
+        throw error;
+    }
+};
+
 // Register IPN URL with Pesapal (call this once during setup)
 const registerIPNUrl = async () => {
     try {
@@ -163,6 +200,16 @@ exports.initiateMobileMoneyPayment = async (farmer, selectedPackageIndex, phoneN
             };
         }
         
+        // FIXED: Get IPN ID from registered IPN URLs
+        let ipnId;
+        try {
+            ipnId = await getIPNId();
+            console.log('Using IPN ID:', ipnId);
+        } catch (ipnError) {
+            console.error('Failed to get IPN ID:', ipnError.message);
+            console.log('Continuing without IPN for now...');
+        }
+        
         // Format phone number for Uganda
         let formattedPhone = phoneNumber.replace(/\D/g, '');
         if (formattedPhone.startsWith('0')) {
@@ -181,7 +228,6 @@ exports.initiateMobileMoneyPayment = async (farmer, selectedPackageIndex, phoneN
             amount: amount,
             description: `Payment for ${farmer.packages[selectedPackageIndex].name}`,
             callback_url: CALLBACK_URL,
-            notification_id: `${config.BASE_URL}/mobile-money/ipn`, // This should be IPN URL
             billing_address: {
                 email_address: farmer.email || `${formattedPhone}@agrigate.com`,
                 phone_number: formattedPhone,
@@ -197,6 +243,14 @@ exports.initiateMobileMoneyPayment = async (farmer, selectedPackageIndex, phoneN
                 zip_code: "00100"
             }
         };
+
+        // FIXED: Add notification_id only if IPN ID was found
+        if (ipnId) {
+            paymentData.notification_id = ipnId;
+            console.log('Added notification_id (IPN ID):', ipnId);
+        } else {
+            console.log('No IPN ID available, proceeding without notification_id');
+        }
 
         console.log('Sending payment request with data:', JSON.stringify(paymentData, null, 2));
 
@@ -254,7 +308,7 @@ exports.initiateMobileMoneyPayment = async (farmer, selectedPackageIndex, phoneN
                 
                 return {
                     success: false,
-                    message: `Mobile money payment failed: ${apiError.response.data?.error || 'Error communicating with payment provider'}`
+                    message: `Mobile money payment failed: ${apiError.response.data?.error?.message || 'Error communicating with payment provider'}`
                 };
             } else if (apiError.request) {
                 console.error('No response received from payment API');
@@ -469,6 +523,23 @@ exports.handlePesapalCallback = async (req, res) => {
         res.status(500).send({ message: 'Error processing callback: ' + error.message });
     } finally {
         console.log('=== End Callback Processing ===\n');
+    }
+};
+
+// Test function to get IPN list
+exports.testGetIPNList = async (req, res) => {
+    try {
+        const ipnId = await getIPNId();
+        res.json({ 
+            success: true, 
+            ipnId: ipnId,
+            message: 'IPN ID retrieved successfully' 
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
     }
 };
 
