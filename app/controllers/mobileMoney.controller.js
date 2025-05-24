@@ -5,7 +5,7 @@ const Transactions = db.Transactions;
 const Farmers = db.Farmers;
 const Packages = db.FPackages;
 
-// FIXED: Use correct Pesapal API URLs
+// Use correct Pesapal API URLs
 const getPesapalConfig = () => {
   return {
     // Use sandbox for testing, production for live
@@ -39,7 +39,7 @@ const debugCredentials = () => {
   return config;
 };
 
-// FIXED: Function to get Pesapal token with proper error handling
+// Function to get Pesapal token with proper error handling
 const getPesapalToken = async () => {
     try {
         // Get fresh configuration and debug
@@ -98,7 +98,7 @@ const getPesapalToken = async () => {
     }
 };
 
-// Get IPN ID from registered IPN URLs - ENHANCED for debugging
+// Get IPN ID from registered IPN URLs - SIMPLIFIED
 const getIPNId = async () => {
     try {
         const config = getPesapalConfig();
@@ -114,89 +114,44 @@ const getIPNId = async () => {
             }
         );
         
-        console.log('IPN List response:', JSON.stringify(response.data, null, 2));
+        console.log('🔍 Looking for IPN URL: https://adl-master-5bnt.onrender.com/mobile-money/ipn');
         
-        // Try multiple URL variations to find a match
-        const possibleUrls = [
-            `${config.BASE_URL}/mobile-money/ipn`,
-            `${config.BASE_URL}/mobile-money/ipn/`,
-            `http://adl-master-5bnt.onrender.com/mobile-money/ipn`,
-            `https://adl-master-5bnt.onrender.com/mobile-money/ipn`,
-            `https://adl-master-5bnt.onrender.com/mobile-money/ipn/`
-        ];
-        
-        console.log('Trying to match against these URLs:');
-        possibleUrls.forEach(url => console.log(`  - ${url}`));
-        
-        // Find the IPN ID for any of our possible URLs
+        // Find the IPN ID for our registered URL
         if (response.data && Array.isArray(response.data)) {
-            console.log('\nRegistered URLs in Pesapal:');
+            console.log('📋 Registered URLs in Pesapal:');
             response.data.forEach((ipn, index) => {
                 console.log(`  ${index + 1}. "${ipn.url}" (ID: ${ipn.ipn_id})`);
             });
             
-            // Try to find match with any variation
-            for (const tryUrl of possibleUrls) {
-                const ipnEntry = response.data.find(ipn => ipn.url === tryUrl);
-                if (ipnEntry && ipnEntry.ipn_id) {
-                    console.log(`\n✅ MATCH FOUND! URL: ${tryUrl} -> ID: ${ipnEntry.ipn_id}`);
-                    return ipnEntry.ipn_id;
-                }
+            // Look for exact match first
+            const exactMatch = response.data.find(ipn => 
+                ipn.url === 'https://adl-master-5bnt.onrender.com/mobile-money/ipn'
+            );
+            
+            if (exactMatch && exactMatch.ipn_id) {
+                console.log(`✅ MATCH FOUND! URL: ${exactMatch.url} -> ID: ${exactMatch.ipn_id}`);
+                return exactMatch.ipn_id;
             }
             
-            // If no exact match, try partial matches
-            console.log('\n❌ No exact match found. Checking for partial matches...');
+            // If no exact match, try partial match
             const partialMatch = response.data.find(ipn => 
-                ipn.url.includes('/mobile-money/ipn') || 
-                ipn.url.includes('adl-master-5bnt.onrender.com')
+                ipn.url.includes('/mobile-money/ipn')
             );
             
             if (partialMatch) {
                 console.log(`⚠️  Partial match found: ${partialMatch.url} -> ID: ${partialMatch.ipn_id}`);
-                console.log(`   Consider updating your registration or BASE_URL`);
                 return partialMatch.ipn_id;
             }
         }
         
-        throw new Error('IPN ID not found for any URL variation');
+        throw new Error('IPN ID not found for registered URL');
     } catch (error) {
         console.error('Error getting IPN ID:', error.response?.data || error.message);
         throw error;
     }
 };
 
-// Register IPN URL with Pesapal (call this once during setup)
-const registerIPNUrl = async () => {
-    try {
-        const config = getPesapalConfig();
-        const token = await getPesapalToken();
-        
-        const ipnData = {
-            url: `${config.BASE_URL}/mobile-money/ipn`,
-            ipn_notification_type: "POST"
-        };
-        
-        const response = await axios.post(
-            `${config.API_URL}/URLSetup/RegisterIPN`,
-            ipnData,
-            {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                }
-            }
-        );
-        
-        console.log('IPN registration response:', response.data);
-        return response.data.ipn_id;
-    } catch (error) {
-        console.error('IPN registration error:', error.response?.data || error.message);
-        throw error;
-    }
-};
-
-// FIXED: Initiate mobile money payment with correct API structure
+// Initiate mobile money payment with correct API structure
 exports.initiateMobileMoneyPayment = async (farmer, selectedPackageIndex, phoneNumber) => {
     try {
         console.log('\n=== Initiating Mobile Money Payment ===');
@@ -230,14 +185,17 @@ exports.initiateMobileMoneyPayment = async (farmer, selectedPackageIndex, phoneN
             };
         }
         
-        // FIXED: Get IPN ID from registered IPN URLs
+        // Get IPN ID from registered IPN URLs
         let ipnId;
         try {
             ipnId = await getIPNId();
-            console.log('Using IPN ID:', ipnId);
+            console.log('✅ Using IPN ID:', ipnId);
         } catch (ipnError) {
-            console.error('Failed to get IPN ID:', ipnError.message);
-            console.log('Continuing without IPN for now...');
+            console.error('❌ Failed to get IPN ID:', ipnError.message);
+            return {
+                success: false,
+                message: 'Payment configuration error. IPN not properly registered.'
+            };
         }
         
         // Format phone number for Uganda
@@ -251,13 +209,14 @@ exports.initiateMobileMoneyPayment = async (farmer, selectedPackageIndex, phoneN
         // Create transaction ID
         const transactionId = `AGRIGATE_${Date.now()}`;
         
-        // FIXED: Prepare payment data with correct Pesapal API 3.0 structure
+        // Prepare payment data with correct Pesapal API 3.0 structure
         const paymentData = {
             id: transactionId,
             currency: 'UGX',
             amount: amount,
             description: `Payment for ${farmer.packages[selectedPackageIndex].name}`,
             callback_url: CALLBACK_URL,
+            notification_id: ipnId, // Required IPN ID
             billing_address: {
                 email_address: farmer.email || `${formattedPhone}@agrigate.com`,
                 phone_number: formattedPhone,
@@ -273,14 +232,6 @@ exports.initiateMobileMoneyPayment = async (farmer, selectedPackageIndex, phoneN
                 zip_code: "00100"
             }
         };
-
-        // FIXED: Add notification_id only if IPN ID was found
-        if (ipnId) {
-            paymentData.notification_id = ipnId;
-            console.log('Added notification_id (IPN ID):', ipnId);
-        } else {
-            console.log('No IPN ID available, proceeding without notification_id');
-        }
 
         console.log('Sending payment request with data:', JSON.stringify(paymentData, null, 2));
 
@@ -299,7 +250,7 @@ exports.initiateMobileMoneyPayment = async (farmer, selectedPackageIndex, phoneN
 
             console.log('Pesapal payment response:', JSON.stringify(response.data, null, 2));
 
-            // FIXED: Process the response correctly
+            // Process the response correctly
             if (response.data && response.data.order_tracking_id) {
                 // Create a pending transaction
                 const transaction = new Transactions({
@@ -365,7 +316,7 @@ exports.initiateMobileMoneyPayment = async (farmer, selectedPackageIndex, phoneN
     }
 };
 
-// NEW: Handle IPN notifications from Pesapal
+// Handle IPN notifications from Pesapal
 exports.handleIPN = async (req, res) => {
     try {
         console.log('\n=== Processing Pesapal IPN ===');
@@ -510,7 +461,7 @@ const processCompletedPayment = async (transaction) => {
     }
 };
 
-// IMPROVED: Callback handler with transaction verification
+// Callback handler with transaction verification
 exports.handlePesapalCallback = async (req, res) => {
     console.log('\n=== Processing Pesapal Callback ===');
     console.log('Callback data:', req.body);
@@ -555,74 +506,3 @@ exports.handlePesapalCallback = async (req, res) => {
         console.log('=== End Callback Processing ===\n');
     }
 };
-
-// Test function to get IPN list - ENHANCED for debugging
-exports.testGetIPNList = async (req, res) => {
-    try {
-        const config = getPesapalConfig();
-        const token = await getPesapalToken();
-        
-        const response = await axios.get(
-            `${config.API_URL}/URLSetup/GetIpnList`,
-            {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json'
-                }
-            }
-        );
-        
-        console.log('Full IPN List response:', JSON.stringify(response.data, null, 2));
-        
-        // Show what we're looking for vs what's registered
-        const lookingFor = `${config.BASE_URL}/mobile-money/ipn`;
-        console.log('Looking for URL:', lookingFor);
-        
-        if (response.data && Array.isArray(response.data)) {
-            console.log('Found registered URLs:');
-            response.data.forEach((ipn, index) => {
-                console.log(`${index + 1}. "${ipn.url}" (ID: ${ipn.ipn_id})`);
-                console.log(`   Matches: ${ipn.url === lookingFor ? 'YES' : 'NO'}`);
-            });
-            
-            // Try to find IPN ID
-            const ipnEntry = response.data.find(ipn => 
-                ipn.url === lookingFor
-            );
-            
-            if (ipnEntry && ipnEntry.ipn_id) {
-                res.json({ 
-                    success: true, 
-                    ipnId: ipnEntry.ipn_id,
-                    registeredUrls: response.data,
-                    lookingFor: lookingFor,
-                    message: 'IPN ID found successfully' 
-                });
-            } else {
-                res.json({ 
-                    success: false, 
-                    error: 'IPN ID not found for our URL',
-                    registeredUrls: response.data,
-                    lookingFor: lookingFor,
-                    message: 'URL mismatch - check registered URLs vs expected URL'
-                });
-            }
-        } else {
-            res.json({ 
-                success: false, 
-                error: 'No IPN URLs registered or invalid response format',
-                rawResponse: response.data
-            });
-        }
-        
-    } catch (error) {
-        res.status(500).json({ 
-            success: false, 
-            error: error.message,
-            details: error.response?.data || 'No response details'
-        });
-    }
-};
-
-// Export the IPN registration function for setup
-exports.registerIPNUrl = registerIPNUrl;

@@ -1,20 +1,19 @@
 // app/routes/mobileMoney.routes.js
-// const auth = require("../../middleware/auth");
-
 module.exports = app => {
     const mobileMoney = require("../controllers/mobileMoney.controller");
     
     var router = require("express").Router();
     
-    // Existing callback route
+    // Callback routes
     router.post("/callback", mobileMoney.handlePesapalCallback);
-    router.get("/callback", mobileMoney.handlePesapalCallback); // Add GET support too
+    router.get("/callback", mobileMoney.handlePesapalCallback);
     
-    // NEW: IPN routes (both GET and POST for Pesapal compatibility)
+    // IPN routes
     router.post("/ipn", mobileMoney.handleIPN);
     router.get("/ipn", mobileMoney.handleIPN);
-
-    router.get("/test-ipn-list", mobileMoney.testGetIPNList);
+    
+    // REMOVE THIS LINE - it's causing the error
+    // router.get("/test-ipn-list", mobileMoney.testGetIPNList);
     
     app.use('/mobile-money', router);
 };
