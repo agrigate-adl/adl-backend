@@ -1,4 +1,3 @@
-
 const dbConfig = require("../../config/dbconfig.js");
 
 const mongoose = require("mongoose");
@@ -15,6 +14,6 @@ db.ScratchCards = require("./scratchCard.model.js")(mongoose);
 db.Transactions = require("./transactions.model.js")(mongoose);
 db.Counters = require("./counters.model.js")(mongoose);
 db.Credit = require("./credit.model.js")(mongoose);
-
+db.LocationHistory = require("./location.model.js")(mongoose); // ← Add this line
 
 module.exports = db;
