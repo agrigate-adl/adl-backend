@@ -464,3 +464,83 @@ exports.getUserByContact = async (req, res) => {
       .send({ message: "An error occurred", error: err.message });
   }
 };
+
+// Update agent information
+exports.updateAgent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { email, contact } = req.body;
+
+    if (!id) {
+      return res.status(400).send({ message: "Agent ID is required" });
+    }
+
+    // Validate that at least one field is provided
+    if (!email && !contact) {
+      return res.status(400).send({
+        message: "At least one field (email or contact) must be provided",
+      });
+    }
+
+    // Check if agent exists
+    const existingAgent = await Users.findById(id);
+    if (!existingAgent) {
+      return res.status(404).send({ message: "Agent not found" });
+    }
+
+    // Prepare update data
+    const updateData = {};
+    if (email) updateData.email = email;
+    if (contact) updateData.contact = contact;
+
+    // Update the agent
+    const updatedAgent = await Users.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    });
+
+    return res.status(200).json({
+      message: "Agent updated successfully",
+      data: updatedAgent,
+    });
+  } catch (err) {
+    console.error("Error updating agent:", err);
+    return res.status(500).send({
+      message: "An error occurred while updating the agent",
+      error: err.message,
+    });
+  }
+};
+
+// Get specific agent by ID
+exports.getAgent = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).send({ message: "Agent ID is required" });
+    }
+
+    const agent = await Users.findById(id);
+
+    if (!agent) {
+      return res.status(404).send({ message: "Agent not found" });
+    }
+
+    // Only return if the user is an agent
+    if (agent.role !== "agent") {
+      return res.status(404).send({ message: "Agent not found" });
+    }
+
+    return res.status(200).json({
+      message: "Agent found",
+      data: agent,
+    });
+  } catch (err) {
+    console.error("Error fetching agent:", err);
+    return res.status(500).send({
+      message: "An error occurred while fetching the agent",
+      error: err.message,
+    });
+  }
+};
