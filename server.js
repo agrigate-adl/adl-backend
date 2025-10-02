@@ -13,11 +13,23 @@ const corsOptions = {
     // Allow requests with no origin (like mobile apps or Postman)
     if (!origin) return callback(null, true);
 
+    // Check exact matches first
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"), false);
+      return;
     }
+
+    // Allow any Vercel domain (*.vercel.app)
+    if (origin && origin.match(/^https:\/\/.*\.vercel\.app$/)) {
+      console.log(`CORS: Allowing Vercel domain: ${origin}`);
+      callback(null, true);
+      return;
+    }
+
+    // Log rejected origins for debugging
+    console.log(`CORS: Rejected origin: ${origin}`);
+    console.log(`CORS: Allowed origins: ${allowedOrigins.join(", ")}`);
+    callback(new Error(`Not allowed by CORS: ${origin}`), false);
   },
   credentials: true,
   optionsSuccessStatus: 200, // Some legacy browsers (IE11, various SmartTVs) choke on 204
