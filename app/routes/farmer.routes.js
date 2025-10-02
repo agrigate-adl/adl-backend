@@ -1,23 +1,22 @@
 const auth = require("../../middleware/auth");
 
-module.exports = app => {
-    const farmers = require("../controllers/farmer.controllers");
-  
-    var router = require("express").Router(); 
+module.exports = (app) => {
+  const farmers = require("../controllers/farmer.controllers");
 
-    router.post("/add-farmer",farmers.addFarmer);
-    router.get("/",farmers.getAllFarmers);
-    router.get("/:id",farmers.getFarmer);
-    router.get("/users/:contact", farmers.getFarmerByContact);
-    router.patch("/:id",farmers.editFarmer)
-    router.delete("/:id", farmers.deleteFarmer);
-    router.post("/search-farmer", farmers.searchkey);
-    router.get("/agent/:adderID", farmers.getFarmersByAdderID);
-    
-    app.use('/farmer', router);
+  var router = require("express").Router();
 
-    // get farmers by agent
+  router.post("/add-farmer", auth, farmers.addFarmer);
+  router.get("/", auth, farmers.getAllFarmers);
+  router.get("/:id", auth, farmers.getFarmer);
+  router.get("/users/:contact", auth, farmers.getFarmerByContact);
+  router.patch("/:id", auth, farmers.editFarmer);
+  router.delete("/:id", auth, farmers.deleteFarmer);
+  router.post("/search-farmer", auth, farmers.searchkey);
+  router.get("/agent/:adderID", auth, farmers.getFarmersByAdderID);
 
-    // get farmer
+  app.use("/farmer", router);
 
-  };
+  // get farmers by agent
+
+  // get farmer
+};

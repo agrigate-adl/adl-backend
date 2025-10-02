@@ -3,6 +3,7 @@ const db = require("../models/index");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
+const EmailService = require("../../services/emailService");
 const Handlefailure = require("../../middleware/failureHandler");
 const mongoose = require("mongoose");
 const ObjectId = mongoose.Types.ObjectId;
@@ -74,7 +75,7 @@ function formatPhoneNumber(phone) {
 const generateOTP = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
-// send otp
+// send otp via SMS (now optional - email is primary)
 async function sendOTP(contact, otp) {
   try {
     const formattedContact = formatPhoneNumber(contact);
@@ -82,21 +83,50 @@ async function sendOTP(contact, otp) {
     If you did not request this, 
     please ignore this message. Thank you.`;
 
-    // Check if we're in development mode
-    if (process.env.NODE_ENV === "development") {
+    // Check if SMS is disabled or we're in development/test mode
+    const smsEnabled = process.env.SMS_OTP_ENABLED === "true";
+    const isDevelopment = process.env.NODE_ENV === "development";
+    const isEmailTestMode = process.env.EMAIL_TEST_MODE === "true";
+
+    if (!smsEnabled || isDevelopment || isEmailTestMode) {
       // In development, just log to console and return mock response
       console.log("\n" + "=".repeat(60));
-      console.log("📱 DEVELOPMENT MODE - SMS NOT SENT");
+      let modeText;
+      if (!smsEnabled) {
+        modeText = "SMS DISABLED - Email-First Mode";
+      } else if (isEmailTestMode) {
+        modeText = "EMAIL TEST MODE - SMS DISABLED";
+      } else {
+        modeText = "DEVELOPMENT MODE - SMS NOT SENT";
+      }
+      console.log(`📱 ${modeText}`);
       console.log("=".repeat(60));
       console.log(`📧 Contact: ${formattedContact}`);
       console.log(`🔑 OTP Code: ${otp}`);
       console.log(`📝 Message: ${message}`);
+      console.log(`⚙️ SMS_OTP_ENABLED: ${smsEnabled}`);
+      console.log(`🌍 NODE_ENV: ${process.env.NODE_ENV}`);
+      if (!smsEnabled) {
+        console.log(
+          `💡 Note: SMS OTP is disabled - Email is the primary delivery method`
+        );
+      }
       console.log("=".repeat(60) + "\n");
 
       // Return a mock successful response
+      let responseMessage;
+      if (!smsEnabled) {
+        responseMessage =
+          "SMS disabled - Email-first mode active (no SMS costs)";
+      } else if (isEmailTestMode) {
+        responseMessage =
+          "OTP logged to console (email test mode - SMS disabled)";
+      } else {
+        responseMessage = "OTP logged to console (development mode)";
+      }
       return {
         status: "success",
-        message: "OTP logged to console (development mode)",
+        message: responseMessage,
         recipients: [formattedContact],
       };
     }
@@ -194,7 +224,16 @@ exports.Createagent = async (req, res) => {
       suspended: false,
     });
 
-    sendAgentRegistrationEmail(user.name, user.email, password);
+    try {
+      await EmailService.sendAgentRegistrationEmail(
+        user.name,
+        user.email,
+        password
+      );
+    } catch (emailError) {
+      console.error("Failed to send registration email:", emailError);
+      // Don't fail the request if email fails
+    }
 
     // return successful message for creation of the agent  ..
 
@@ -205,13 +244,32 @@ exports.Createagent = async (req, res) => {
   }
 };
 
-// Login function with OTP generation
+// Login function with OTP generation (Email-first, SMS optional)
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    // Default to email as primary OTP delivery method
+    const { email, password, otpMethod = "email" } = req.body;
 
     if (!(email && password)) {
       return res.status(400).send({ message: "All input is required" });
+    }
+
+    // Check if SMS is available
+    const smsEnabled = process.env.SMS_OTP_ENABLED === "true";
+
+    // Validate otpMethod and availability
+    if (otpMethod && !["sms", "email"].includes(otpMethod)) {
+      return res
+        .status(400)
+        .send({ message: "Invalid OTP method. Use 'sms' or 'email'" });
+    }
+
+    // If SMS is requested but not enabled, inform user
+    if (otpMethod === "sms" && !smsEnabled) {
+      return res.status(400).send({
+        message: "SMS OTP is currently unavailable. Please use email delivery.",
+        availableMethods: ["email"],
+      });
     }
 
     const user = await Users.findOne({ email });
@@ -246,19 +304,86 @@ exports.login = async (req, res) => {
       console.log(`📧 User Email: ${user.email}`);
       console.log(`📱 User Contact: ${user.contact}`);
       console.log(`🔑 OTP Code: ${otp}`);
+      console.log(`📋 Requested Method: ${otpMethod.toUpperCase()}`);
+      console.log(`⚙️ SMS Enabled: ${smsEnabled}`);
       console.log(`⏰ Expires At: ${otpExpires.toLocaleString()}`);
       if (isDevelopment) {
         console.log(`🚫 SMS Status: DISABLED (Development Mode)`);
         console.log(`💡 Note: Change NODE_ENV to 'production' to enable SMS`);
+      } else if (!smsEnabled) {
+        console.log(
+          `💰 SMS Status: DISABLED (Cost Control - Email-First Mode)`
+        );
+        console.log(`💡 Note: Set SMS_OTP_ENABLED=true to enable SMS`);
       }
       console.log("=".repeat(60));
 
-      await sendOTP(user.contact, otp);
+      try {
+        // Primary delivery method: Email (always available)
+        if (otpMethod === "email") {
+          await EmailService.sendOTPEmail(user.name, user.email, otp);
+          return res.status(200).send({
+            message: "OTP sent to your email address",
+            userId: user._id,
+            otpMethod: "email",
+          });
+        }
+        // Secondary delivery method: SMS (only if enabled)
+        else if (otpMethod === "sms" && smsEnabled) {
+          await sendOTP(user.contact, otp);
+          return res.status(200).send({
+            message: "OTP sent to registered contact number",
+            userId: user._id,
+            otpMethod: "sms",
+          });
+        }
+        // Fallback to email if SMS requested but not available
+        else {
+          await EmailService.sendOTPEmail(user.name, user.email, otp);
+          return res.status(200).send({
+            message: "SMS unavailable. OTP sent to your email address instead.",
+            userId: user._id,
+            otpMethod: "email",
+          });
+        }
+      } catch (deliveryError) {
+        console.error(`Error sending OTP via ${otpMethod}:`, deliveryError);
 
-      return res.status(200).send({
-        message: "OTP sent to registered contact number",
-        userId: user._id,
-      });
+        // Smart fallback logic
+        if (otpMethod === "email" && smsEnabled) {
+          // If email fails and SMS is available, try SMS as backup
+          try {
+            await sendOTP(user.contact, otp);
+            return res.status(200).send({
+              message:
+                "Email delivery failed. OTP sent to your phone number instead.",
+              userId: user._id,
+              otpMethod: "sms",
+            });
+          } catch (smsError) {
+            console.error("Both email and SMS delivery failed:", smsError);
+          }
+        } else if (otpMethod === "sms") {
+          // If SMS fails, try email as backup
+          try {
+            await EmailService.sendOTPEmail(user.name, user.email, otp);
+            return res.status(200).send({
+              message:
+                "SMS delivery failed. OTP sent to your email address instead.",
+              userId: user._id,
+              otpMethod: "email",
+            });
+          } catch (emailError) {
+            console.error("Both SMS and email delivery failed:", emailError);
+          }
+        }
+
+        return res.status(500).send({
+          message:
+            "Failed to deliver OTP via all available methods. Please try again or contact support.",
+          error: deliveryError.message,
+        });
+      }
     } else {
       return res.status(400).send({ message: "Invalid Credentials" });
     }
@@ -313,13 +438,32 @@ exports.verifyOTP = async (req, res) => {
   }
 };
 
-// Resend OTP function
+// Resend OTP function (Email-first, SMS optional)
 exports.resendOTP = async (req, res) => {
   try {
-    const { userId } = req.body;
+    // Default to email as primary OTP delivery method
+    const { userId, otpMethod = "email" } = req.body;
 
     if (!userId) {
       return res.status(400).send({ message: "User ID is required" });
+    }
+
+    // Check if SMS is available
+    const smsEnabled = process.env.SMS_OTP_ENABLED === "true";
+
+    // Validate otpMethod
+    if (otpMethod && !["sms", "email"].includes(otpMethod)) {
+      return res
+        .status(400)
+        .send({ message: "Invalid OTP method. Use 'sms' or 'email'" });
+    }
+
+    // If SMS is requested but not enabled, inform user
+    if (otpMethod === "sms" && !smsEnabled) {
+      return res.status(400).send({
+        message: "SMS OTP is currently unavailable. Please use email delivery.",
+        availableMethods: ["email"],
+      });
     }
 
     const user = await Users.findById(userId);
@@ -336,12 +480,50 @@ exports.resendOTP = async (req, res) => {
     user.otpExpires = otpExpires;
     await user.save();
 
-    // Send OTP via SMS
-    await sendOTP(user.contact, otp);
+    console.log(
+      `🔄 Resending OTP via ${otpMethod.toUpperCase()} for user: ${
+        user.email
+      } (SMS Enabled: ${smsEnabled})`
+    );
 
-    return res.status(200).send({
-      message: "New OTP sent to registered contact number",
-    });
+    try {
+      // Send OTP via selected method
+      if (otpMethod === "email") {
+        await EmailService.sendOTPEmail(user.name, user.email, otp);
+        return res.status(200).send({
+          message: "New OTP sent to your email address",
+          otpMethod: "email",
+        });
+      } else {
+        // Default SMS method
+        await sendOTP(user.contact, otp);
+        return res.status(200).send({
+          message: "New OTP sent to registered contact number",
+          otpMethod: "sms",
+        });
+      }
+    } catch (deliveryError) {
+      console.error(`Error resending OTP via ${otpMethod}:`, deliveryError);
+
+      // If email fails, try SMS as backup (if email was selected)
+      if (otpMethod === "email") {
+        try {
+          await sendOTP(user.contact, otp);
+          return res.status(200).send({
+            message:
+              "Email delivery failed. New OTP sent to your phone number instead.",
+            otpMethod: "sms",
+          });
+        } catch (smsError) {
+          console.error("Both email and SMS resend failed:", smsError);
+        }
+      }
+
+      return res.status(500).send({
+        message: "Failed to resend OTP. Please try again or contact support.",
+        error: deliveryError.message,
+      });
+    }
   } catch (err) {
     console.error(err);
     return res
@@ -540,6 +722,132 @@ exports.getAgent = async (req, res) => {
     console.error("Error fetching agent:", err);
     return res.status(500).send({
       message: "An error occurred while fetching the agent",
+      error: err.message,
+    });
+  }
+};
+
+// Change password function
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.user_id; // From auth middleware
+
+    if (!(currentPassword && newPassword)) {
+      return res.status(400).send({
+        message: "Current password and new password are required",
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).send({
+        message: "New password must be at least 6 characters long",
+      });
+    }
+
+    // Find the user
+    const user = await Users.findById(userId);
+    if (!user) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password
+    );
+    if (!isCurrentPasswordValid) {
+      return res.status(400).send({ message: "Current password is incorrect" });
+    }
+
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    user.password = hashedNewPassword;
+    await user.save();
+
+    console.log(`Password changed successfully for user: ${user.email}`);
+
+    return res.status(200).json({
+      message: "Password changed successfully",
+    });
+  } catch (err) {
+    console.error("Error changing password:", err);
+    return res.status(500).send({
+      message: "An error occurred while changing password",
+      error: err.message,
+    });
+  }
+};
+
+// Admin reset agent password function
+exports.resetAgentPassword = async (req, res) => {
+  try {
+    const { agentId } = req.params;
+    const { newPassword } = req.body;
+    const adminId = req.user.user_id; // From auth middleware
+
+    if (!newPassword) {
+      return res.status(400).send({
+        message: "New password is required",
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).send({
+        message: "New password must be at least 6 characters long",
+      });
+    }
+
+    // Verify admin user exists and has admin privileges
+    const admin = await Users.findById(adminId);
+    if (!admin || admin.role !== "admin") {
+      return res
+        .status(403)
+        .send({ message: "Access denied. Admin privileges required." });
+    }
+
+    // Find the agent
+    const agent = await Users.findById(agentId);
+    if (!agent) {
+      return res.status(404).send({ message: "Agent not found" });
+    }
+
+    if (agent.role !== "agent") {
+      return res.status(400).send({ message: "User is not an agent" });
+    }
+
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update agent password
+    agent.password = hashedNewPassword;
+    await agent.save();
+
+    // Send email notification to agent
+    try {
+      await EmailService.sendPasswordResetEmail(
+        agent.name,
+        agent.email,
+        newPassword
+      );
+    } catch (emailError) {
+      console.error("Email sending failed:", emailError);
+      // Don't fail the request if email fails
+    }
+
+    console.log(
+      `Password reset by admin ${admin.email} for agent: ${agent.email}`
+    );
+
+    return res.status(200).json({
+      message: "Agent password reset successfully. Email notification sent.",
+    });
+  } catch (err) {
+    console.error("Error resetting agent password:", err);
+    return res.status(500).send({
+      message: "An error occurred while resetting password",
       error: err.message,
     });
   }
