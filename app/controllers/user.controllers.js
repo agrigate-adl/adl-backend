@@ -544,3 +544,151 @@ exports.getAgent = async (req, res) => {
     });
   }
 };
+
+// Change password function
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.user_id; // From auth middleware
+
+    if (!(currentPassword && newPassword)) {
+      return res.status(400).send({
+        message: "Current password and new password are required",
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).send({
+        message: "New password must be at least 6 characters long",
+      });
+    }
+
+    // Find the user
+    const user = await Users.findById(userId);
+    if (!user) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password
+    );
+    if (!isCurrentPasswordValid) {
+      return res.status(400).send({ message: "Current password is incorrect" });
+    }
+
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    user.password = hashedNewPassword;
+    await user.save();
+
+    console.log(`Password changed successfully for user: ${user.email}`);
+
+    return res.status(200).json({
+      message: "Password changed successfully",
+    });
+  } catch (err) {
+    console.error("Error changing password:", err);
+    return res.status(500).send({
+      message: "An error occurred while changing password",
+      error: err.message,
+    });
+  }
+};
+
+// Admin reset agent password function
+exports.resetAgentPassword = async (req, res) => {
+  try {
+    const { agentId } = req.params;
+    const { newPassword } = req.body;
+    const adminId = req.user.user_id; // From auth middleware
+
+    if (!newPassword) {
+      return res.status(400).send({
+        message: "New password is required",
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).send({
+        message: "New password must be at least 6 characters long",
+      });
+    }
+
+    // Verify admin user exists and has admin privileges
+    const admin = await Users.findById(adminId);
+    if (!admin || admin.role !== "admin") {
+      return res
+        .status(403)
+        .send({ message: "Access denied. Admin privileges required." });
+    }
+
+    // Find the agent
+    const agent = await Users.findById(agentId);
+    if (!agent) {
+      return res.status(404).send({ message: "Agent not found" });
+    }
+
+    if (agent.role !== "agent") {
+      return res.status(400).send({ message: "User is not an agent" });
+    }
+
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update agent password
+    agent.password = hashedNewPassword;
+    await agent.save();
+
+    // Send email notification to agent
+    try {
+      const mailOptions = {
+        from: process.env.COMPANY_EMAIL,
+        to: agent.email,
+        subject: "Password Reset - Agrigate System",
+        text: `
+          Hello ${agent.name},
+          
+          Your password has been reset by an administrator.
+          
+          Your new login credentials are:
+          Email: ${agent.email}
+          New Password: ${newPassword}
+          
+          Please login and change your password for security.
+          
+          Best regards,
+          Agrigate Team
+        `,
+      };
+
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.error("Error sending password reset email:", error);
+        } else {
+          console.log("Password reset email sent:", info.response);
+        }
+      });
+    } catch (emailError) {
+      console.error("Email sending failed:", emailError);
+      // Don't fail the request if email fails
+    }
+
+    console.log(
+      `Password reset by admin ${admin.email} for agent: ${agent.email}`
+    );
+
+    return res.status(200).json({
+      message: "Agent password reset successfully. Email notification sent.",
+    });
+  } catch (err) {
+    console.error("Error resetting agent password:", err);
+    return res.status(500).send({
+      message: "An error occurred while resetting password",
+      error: err.message,
+    });
+  }
+};

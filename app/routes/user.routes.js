@@ -16,6 +16,8 @@ module.exports = (app) => {
   router.get("/agent/:id", users.getAgent);
   router.get("/users/:contact", users.getUserByContact);
   router.get("/:id", users.getAdmin);
+  router.post("/change-password", auth, users.changePassword);
+  router.post("/agent/reset-password/:agentId", auth, users.resetAgentPassword);
 
   app.use("/admin", router);
 };
