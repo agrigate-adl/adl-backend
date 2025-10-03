@@ -14,6 +14,12 @@ module.exports = mongoose => {
           suspended: { type: Boolean, default: false },
           otp: String,
           otpExpires: Date,
+          registeredDevices: [{
+            deviceId: String,
+            deviceName: String,
+            registeredAt: { type: Date, default: Date.now },
+            lastLoginAt: Date
+          }]
         },
         { timestamps: true }
       )
