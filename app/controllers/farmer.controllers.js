@@ -270,21 +270,20 @@ exports.getFarmersByAdderID = async (req, res) => {
   try {
     const farmers = await Farmers.find({ adderID });
 
-    if (farmers.length > 0) {
-      return res.status(200).send({
-        message: "Farmers retrieved successfully",
-        data: farmers,
-      });
-    } else {
-      return res.status(404).send({
-        message: "No farmers found for the specified adder ID",
-        data: null,
-      });
-    }
+    // Always return 200 with consistent structure
+    return res.status(200).send({
+      message:
+        farmers.length > 0
+          ? "Farmers retrieved successfully"
+          : "No farmers found for the specified adder ID",
+      data: farmers, // Return empty array instead of null for consistency
+      count: farmers.length,
+    });
   } catch (error) {
     return res.status(500).send({
       message: "An error occurred while retrieving farmers",
       error: error.message,
+      data: null,
     });
   }
 };
