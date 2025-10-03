@@ -15,8 +15,12 @@ exports.addFarmer = async (req, res) => {
   Farmers.findOne({ contact: contact })
     .then(async (data) => {
       if (data !== null) {
-        res.status(502).send({ message: "Contact already in user" });
-        return;
+        // Return existing farmer data instead of error for better sync compatibility
+        return res.status(200).send({
+          message: "Farmer with this contact already exists",
+          data: data,
+          isExisting: true,
+        });
       }
       var num;
       var collectionExists = await Counters.findById(
@@ -270,21 +274,26 @@ exports.getFarmersByAdderID = async (req, res) => {
   try {
     const farmers = await Farmers.find({ adderID });
 
-    if (farmers.length > 0) {
-      return res.status(200).send({
-        message: "Farmers retrieved successfully",
-        data: farmers,
-      });
-    } else {
-      return res.status(404).send({
-        message: "No farmers found for the specified adder ID",
-        data: null,
-      });
-    }
+    // Ensure packages field is properly included (it should be by default, but let's be explicit)
+    const farmersWithPackages = farmers.map((farmer) => ({
+      ...farmer.toObject(),
+      packages: farmer.packages || [], // Ensure packages array is always present
+    }));
+
+    // Always return 200 with consistent structure
+    return res.status(200).send({
+      message:
+        farmers.length > 0
+          ? "Farmers retrieved successfully"
+          : "No farmers found for the specified adder ID",
+      data: farmersWithPackages, // Return farmers with explicit package data
+      count: farmers.length,
+    });
   } catch (error) {
     return res.status(500).send({
       message: "An error occurred while retrieving farmers",
       error: error.message,
+      data: null,
     });
   }
 };

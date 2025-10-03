@@ -244,11 +244,11 @@ exports.Createagent = async (req, res) => {
   }
 };
 
-// Login function with OTP generation (Email-first, SMS optional)
+// Login function with device-based OTP (first-time devices only)
 exports.login = async (req, res) => {
   try {
     // Default to email as primary OTP delivery method
-    const { email, password, otpMethod = "email" } = req.body;
+    const { email, password, deviceId, otpMethod = "email" } = req.body;
 
     if (!(email && password)) {
       return res.status(400).send({ message: "All input is required" });
@@ -285,6 +285,52 @@ exports.login = async (req, res) => {
     }
 
     if (user && (await bcrypt.compare(password, user.password))) {
+      // Check if this is a registered device for this user
+      const isRegisteredDevice =
+        deviceId &&
+        user.registeredDevices &&
+        user.registeredDevices.some((device) => device.deviceId === deviceId);
+
+      // If device is already registered, allow direct login (no OTP)
+      if (isRegisteredDevice) {
+        console.log(
+          `🔑 Direct login for registered device: ${deviceId.substring(
+            0,
+            12
+          )}...`
+        );
+
+        // Update last login time for this device
+        const deviceIndex = user.registeredDevices.findIndex(
+          (device) => device.deviceId === deviceId
+        );
+        if (deviceIndex !== -1) {
+          user.registeredDevices[deviceIndex].lastLoginAt = new Date();
+          await user.save();
+        }
+
+        // Generate token and return successful login
+        const token = jwt.sign(
+          { user_id: user._id, email: user.email },
+          process.env.JWT_SECRET_KEY,
+          { expiresIn: "12h" }
+        );
+
+        return res.status(200).send({
+          message: "Login successful",
+          token,
+          requiresOTP: false,
+          user: {
+            id: user._id,
+            email: user.email,
+            role: user.role,
+            name: user.name,
+          },
+        });
+      }
+
+      // New device or no device ID provided - require OTP verification
+      console.log(`🆔 New device login detected - requiring OTP verification`);
       const otp = generateOTP();
       const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // OTP expires in 10 minutes
 
@@ -323,8 +369,9 @@ exports.login = async (req, res) => {
         if (otpMethod === "email") {
           await EmailService.sendOTPEmail(user.name, user.email, otp);
           return res.status(200).send({
-            message: "OTP sent to your email address",
+            message: "New device detected. OTP sent to your email address",
             userId: user._id,
+            requiresOTP: true,
             otpMethod: "email",
           });
         }
@@ -332,8 +379,10 @@ exports.login = async (req, res) => {
         else if (otpMethod === "sms" && smsEnabled) {
           await sendOTP(user.contact, otp);
           return res.status(200).send({
-            message: "OTP sent to registered contact number",
+            message:
+              "New device detected. OTP sent to registered contact number",
             userId: user._id,
+            requiresOTP: true,
             otpMethod: "sms",
           });
         }
@@ -341,8 +390,10 @@ exports.login = async (req, res) => {
         else {
           await EmailService.sendOTPEmail(user.name, user.email, otp);
           return res.status(200).send({
-            message: "SMS unavailable. OTP sent to your email address instead.",
+            message:
+              "New device detected. SMS unavailable, OTP sent to your email address instead.",
             userId: user._id,
+            requiresOTP: true,
             otpMethod: "email",
           });
         }
@@ -393,10 +444,10 @@ exports.login = async (req, res) => {
   }
 };
 
-// OTP verification function
+// OTP verification function with device registration
 exports.verifyOTP = async (req, res) => {
   try {
-    const { userId, otp } = req.body;
+    const { userId, otp, deviceId, deviceName } = req.body;
 
     if (!(userId && otp)) {
       return res.status(400).send({ message: "User ID and OTP are required" });
@@ -415,12 +466,55 @@ exports.verifyOTP = async (req, res) => {
         { expiresIn: "12h" }
       );
 
+      // Register the device if deviceId is provided
+      if (deviceId) {
+        // Check if device is already registered
+        const existingDeviceIndex = user.registeredDevices
+          ? user.registeredDevices.findIndex(
+              (device) => device.deviceId === deviceId
+            )
+          : -1;
+
+        if (existingDeviceIndex === -1) {
+          // Add new device
+          if (!user.registeredDevices) {
+            user.registeredDevices = [];
+          }
+
+          user.registeredDevices.push({
+            deviceId,
+            deviceName: deviceName || "Unknown Device",
+            registeredAt: new Date(),
+            lastLoginAt: new Date(),
+          });
+
+          console.log(
+            `📱 New device registered: ${deviceId.substring(
+              0,
+              12
+            )}... for user ${user.email}`
+          );
+        } else {
+          // Update existing device info
+          user.registeredDevices[existingDeviceIndex].lastLoginAt = new Date();
+          if (deviceName) {
+            user.registeredDevices[existingDeviceIndex].deviceName = deviceName;
+          }
+          console.log(
+            `🔄 Updated existing device: ${deviceId.substring(
+              0,
+              12
+            )}... for user ${user.email}`
+          );
+        }
+      }
+
       user.otp = null; // Clear OTP after successful verification
       user.otpExpires = null;
       await user.save();
 
       return res.status(200).send({
-        message: "Login successful",
+        message: "Login successful" + (deviceId ? " - Device registered" : ""),
         token,
         user: {
           id: user._id,
