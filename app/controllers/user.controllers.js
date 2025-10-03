@@ -286,15 +286,24 @@ exports.login = async (req, res) => {
 
     if (user && (await bcrypt.compare(password, user.password))) {
       // Check if this is a registered device for this user
-      const isRegisteredDevice = deviceId && user.registeredDevices && 
-        user.registeredDevices.some(device => device.deviceId === deviceId);
+      const isRegisteredDevice =
+        deviceId &&
+        user.registeredDevices &&
+        user.registeredDevices.some((device) => device.deviceId === deviceId);
 
       // If device is already registered, allow direct login (no OTP)
       if (isRegisteredDevice) {
-        console.log(`🔑 Direct login for registered device: ${deviceId.substring(0, 12)}...`);
-        
+        console.log(
+          `🔑 Direct login for registered device: ${deviceId.substring(
+            0,
+            12
+          )}...`
+        );
+
         // Update last login time for this device
-        const deviceIndex = user.registeredDevices.findIndex(device => device.deviceId === deviceId);
+        const deviceIndex = user.registeredDevices.findIndex(
+          (device) => device.deviceId === deviceId
+        );
         if (deviceIndex !== -1) {
           user.registeredDevices[deviceIndex].lastLoginAt = new Date();
           await user.save();
@@ -370,7 +379,8 @@ exports.login = async (req, res) => {
         else if (otpMethod === "sms" && smsEnabled) {
           await sendOTP(user.contact, otp);
           return res.status(200).send({
-            message: "New device detected. OTP sent to registered contact number",
+            message:
+              "New device detected. OTP sent to registered contact number",
             userId: user._id,
             requiresOTP: true,
             otpMethod: "sms",
@@ -380,7 +390,8 @@ exports.login = async (req, res) => {
         else {
           await EmailService.sendOTPEmail(user.name, user.email, otp);
           return res.status(200).send({
-            message: "New device detected. SMS unavailable, OTP sent to your email address instead.",
+            message:
+              "New device detected. SMS unavailable, OTP sent to your email address instead.",
             userId: user._id,
             requiresOTP: true,
             otpMethod: "email",
@@ -458,30 +469,43 @@ exports.verifyOTP = async (req, res) => {
       // Register the device if deviceId is provided
       if (deviceId) {
         // Check if device is already registered
-        const existingDeviceIndex = user.registeredDevices ? 
-          user.registeredDevices.findIndex(device => device.deviceId === deviceId) : -1;
+        const existingDeviceIndex = user.registeredDevices
+          ? user.registeredDevices.findIndex(
+              (device) => device.deviceId === deviceId
+            )
+          : -1;
 
         if (existingDeviceIndex === -1) {
           // Add new device
           if (!user.registeredDevices) {
             user.registeredDevices = [];
           }
-          
+
           user.registeredDevices.push({
             deviceId,
-            deviceName: deviceName || 'Unknown Device',
+            deviceName: deviceName || "Unknown Device",
             registeredAt: new Date(),
-            lastLoginAt: new Date()
+            lastLoginAt: new Date(),
           });
 
-          console.log(`📱 New device registered: ${deviceId.substring(0, 12)}... for user ${user.email}`);
+          console.log(
+            `📱 New device registered: ${deviceId.substring(
+              0,
+              12
+            )}... for user ${user.email}`
+          );
         } else {
           // Update existing device info
           user.registeredDevices[existingDeviceIndex].lastLoginAt = new Date();
           if (deviceName) {
             user.registeredDevices[existingDeviceIndex].deviceName = deviceName;
           }
-          console.log(`🔄 Updated existing device: ${deviceId.substring(0, 12)}... for user ${user.email}`);
+          console.log(
+            `🔄 Updated existing device: ${deviceId.substring(
+              0,
+              12
+            )}... for user ${user.email}`
+          );
         }
       }
 
