@@ -308,9 +308,7 @@ class EmailService {
                 deletionTypeColors[deletionType] || "#4CAF50"
               }; border-radius: 8px; padding: 25px; margin: 25px 0;">
                 <h3 style="color: #2d3748; margin: 0 0 18px 0; font-size: 18px; font-weight: 600; display: flex; align-items: center;">
-                  // <span style="background: ${
-                    deletionTypeColors[deletionType] || "#4CAF50"
-                  }; color: white; width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-right: 10px; font-size: 16px;">📋</span>
+                  
                   Deletion Details
                 </h3>
                 
@@ -504,7 +502,7 @@ class EmailService {
               <!-- Card Generation Details -->
               <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 5px solid #10b981; border-radius: 8px; padding: 25px; margin: 25px 0;">
                 <h3 style="color: #2d3748; margin: 0 0 18px 0; font-size: 18px; font-weight: 600; display: flex; align-items: center;">
-                  // <span style="background: #10b981; color: white; width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-right: 10px; font-size: 16px;">📋</span>
+                  
                   Generation Details
                 </h3>
                 
