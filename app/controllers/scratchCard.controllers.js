@@ -1,43 +1,72 @@
 const db = require("../models/index");
+const emailService = require("../../services/emailService");
 
 const sc = db.ScratchCards;
-
+const Users = db.Users;
 
 exports.addCardBatchs = async (req, res) => {
-const { generatorID, count, amount } = req.body;
-if (!(generatorID && count && amount)) {
-        return res.status(400).send({message:"Not enough data to add cards"});
-}
-if (count > 400 ) {
-    return res.status(430).send({message:"too many cards requested"});
-}
-var insertationArray = []
-for (var i = 1; i <= count; i++) {
-    var cardVal = Math.floor(10000000000000 + Math.random() * 90000000000000)
-    insertationArray.push( { 
-        amount: amount,
-        status:"unused",
-        generatorID:generatorID,
-        farmer:"",
-        cardNumber:cardVal.toString()
-    } );
-}
-sc.insertMany(insertationArray).then((data) => {
-    res.status(201).send(
-        {
-          message:"success",
-          data
-        }
-      );
-  })
-  .catch((error) => {
-    res.status(500).send({
-      message: "failed to insert cards",
+  const { generatorID, count, amount } = req.body;
+  if (!(generatorID && count && amount)) {
+    return res.status(400).send({ message: "Not enough data to add cards" });
+  }
+  if (count > 400) {
+    return res.status(430).send({ message: "too many cards requested" });
+  }
+  var insertationArray = [];
+  for (var i = 1; i <= count; i++) {
+    var cardVal = Math.floor(10000000000000 + Math.random() * 90000000000000);
+    insertationArray.push({
+      amount: amount,
+      status: "unused",
+      generatorID: generatorID,
+      farmer: "",
+      cardNumber: cardVal.toString(),
     });
-   });
+  }
+  sc.insertMany(insertationArray)
+    .then(async (data) => {
+      // Send email notification to all admins (async, don't wait)
+      try {
+        // Get creator user info (could be from req.userData if auth is added, or from generatorID)
+        const creatorUser = req.userData || (await Users.findById(generatorID));
+
+        const allAdmins = await Users.find({ role: "admin" }).select(
+          "email name"
+        );
+        const adminEmails = allAdmins
+          .map((admin) => admin.email)
+          .filter(Boolean);
+
+        if (adminEmails.length > 0) {
+          emailService.sendScratchCardCreationEmail(adminEmails, {
+            creatorEmail: creatorUser?.email || "Unknown",
+            creatorName: creatorUser?.name || "Unknown Admin",
+            cardCount: parseInt(count),
+            cardValue: parseInt(amount),
+            timestamp: new Date(),
+          });
+        }
+      } catch (emailError) {
+        console.error(
+          "Failed to send scratch card creation notification:",
+          emailError
+        );
+        // Don't fail the card creation if email fails
+      }
+
+      res.status(201).send({
+        message: "success",
+        data,
+      });
+    })
+    .catch((error) => {
+      res.status(500).send({
+        message: "failed to insert cards",
+      });
+    });
   //save cards record
-}
-exports.getCard  = async (req, res)=>{
+};
+exports.getCard = async (req, res) => {
   const val = req.params.val;
   sc.findOne({ cardNumber: val })
     .then((data) => {
@@ -52,73 +81,71 @@ exports.getCard  = async (req, res)=>{
         message: "error, can't retrieve data",
       });
     });
-}
+};
 
 exports.getCardAvailableCounts = async (req, res) => {
-    const { cardAmount } = req.body;
-    if (cardAmount==="") {
-        sc.aggregate([
-            {
-              $match: { "status": "unused" }
-            },
-            {
-              $count: "count"
-            }
-          ])
-            .then((count)=>{
-                return res.status(200).send({message:"success",count});
-            }).catch((e)=>{
-                return res.status(430).send({message:"failed to get count"});
-            })
-    }else{
-        sc.countDocuments({ $and: [ {amount: cardAmount },
-            {status:"unused"}]}).then((count)=>{
-                return res.status(200).send({message:"success",count});
-            }).catch((e)=>{
-                return res.status(430).send({message:"failed to get count"});
-            })
-    }  
-}
+  const { cardAmount } = req.body;
+  if (cardAmount === "") {
+    sc.aggregate([
+      {
+        $match: { status: "unused" },
+      },
+      {
+        $count: "count",
+      },
+    ])
+      .then((count) => {
+        return res.status(200).send({ message: "success", count });
+      })
+      .catch((e) => {
+        return res.status(430).send({ message: "failed to get count" });
+      });
+  } else {
+    sc.countDocuments({ $and: [{ amount: cardAmount }, { status: "unused" }] })
+      .then((count) => {
+        return res.status(200).send({ message: "success", count });
+      })
+      .catch((e) => {
+        return res.status(430).send({ message: "failed to get count" });
+      });
+  }
+};
 
 exports.getCardUsedCounts = async (req, res) => {
-    const { cardAmount } = req.body;
-    if (cardAmount==="") {
-        sc.aggregate([
-            {
-              $match: { "status": "used" }
-            },
-            {
-              $count: "count"
-            }
-          ])
-            .then((count)=>{
-                return res.status(200).send({message:"success",count});
-            }).catch((e)=>{
-                return res.status(430).send({message:"failed to get count"});
-            })
-    }else{
-        sc.countDocuments({ $and: [ {amount: cardAmount },
-            {status:"used"}]}).then((count)=>{
-                return res.status(200).send({message:"success",count});
-            }).catch((e)=>{
-                return res.status(430).send({message:"failed to get count"});
-            })
-    }  
-}
+  const { cardAmount } = req.body;
+  if (cardAmount === "") {
+    sc.aggregate([
+      {
+        $match: { status: "used" },
+      },
+      {
+        $count: "count",
+      },
+    ])
+      .then((count) => {
+        return res.status(200).send({ message: "success", count });
+      })
+      .catch((e) => {
+        return res.status(430).send({ message: "failed to get count" });
+      });
+  } else {
+    sc.countDocuments({ $and: [{ amount: cardAmount }, { status: "used" }] })
+      .then((count) => {
+        return res.status(200).send({ message: "success", count });
+      })
+      .catch((e) => {
+        return res.status(430).send({ message: "failed to get count" });
+      });
+  }
+};
 
 exports.overAllCount = async (req, res) => {
   try {
     const counts = await sc.aggregate([
       {
         $facet: {
-          Used: [
-            { $match: { status: "used" } },
-            { $count: "count" },
-          ],
-          Unused: [
-            { $match: { status: "unused" } },
-            { $count: "count" },
-          ],
+          Used: [{ $match: { status: "used" } }, { $count: "count" }],
+          Unused: [{ $match: { status: "unused" } }, { $count: "count" }],
           C500: [
             {
               $match: {
@@ -178,9 +205,9 @@ exports.overAllCount = async (req, res) => {
         },
       },
     ]);
-    
+
     const formattedCounts = counts[0]; // Access the first element of the array
-    console.log(formattedCounts)
+    console.log(formattedCounts);
     const result = {
       Used: formattedCounts.Used[0].count || 0,
       Unused: formattedCounts.Unused[0].count || 0,

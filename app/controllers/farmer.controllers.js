@@ -2,6 +2,7 @@ const db = require("../models/index");
 const dbConfig = require("../../config/dbconfig.js");
 const mongoose = require("mongoose");
 const ObjectId = mongoose.Types.ObjectId;
+const emailService = require("../../services/emailService");
 
 const Users = db.Users;
 const Counters = db.Counters;
@@ -122,7 +123,40 @@ exports.getAllFarmers = async (req, res) => {
 exports.deleteFarmer = async (req, res) => {
   const id = req.params.id;
   try {
+    // Get farmer details before deletion
+    const farmer = await Farmers.findById(ObjectId(id));
+    if (!farmer) {
+      return res.status(404).send({ message: "Farmer not found" });
+    }
+
+    // Get admin user info from auth middleware (already available in req.userData)
+    const adminUser = req.userData;
+
+    // Delete the farmer
     await Farmers.deleteOne({ _id: ObjectId(id) });
+
+    // Send deletion notification to all admins (async, don't wait)
+    try {
+      const allAdmins = await Users.find({ role: "admin" }).select(
+        "email name"
+      );
+      const adminEmails = allAdmins.map((admin) => admin.email).filter(Boolean);
+
+      if (adminEmails.length > 0) {
+        emailService.sendDeletionNotificationEmail(adminEmails, {
+          adminEmail: adminUser?.email || "Unknown",
+          adminName: adminUser?.name || "Unknown Admin",
+          deletionType: "Farmer",
+          deletedItemName: farmer.name,
+          deletedItemId: id,
+          timestamp: new Date(),
+        });
+      }
+    } catch (emailError) {
+      console.error("Failed to send deletion notification:", emailError);
+      // Don't fail the deletion if email fails
+    }
+
     res.status(200).send({
       message: "deleted farmer successfully",
     });
