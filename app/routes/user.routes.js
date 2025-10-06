@@ -4,10 +4,10 @@ module.exports = (app) => {
   const users = require("../controllers/user.controllers");
   var router = require("express").Router();
   router.post("/register-a", users.Createuser);
-  router.post("/agent/suspend/:id", users.suspendAgent);
-  router.post("/agent/unsuspend/:id", users.unsuspendAgent);
-  router.put("/agent/:id", users.updateAgent);
-  router.delete("/agent/:id", users.deleteAgent);
+  router.post("/agent/suspend/:id", auth, users.suspendAgent);
+  router.post("/agent/unsuspend/:id", auth, users.unsuspendAgent);
+  router.put("/agent/:id", auth, users.updateAgent);
+  router.delete("/agent/:id", auth, users.deleteAgent);
   router.post("/login", users.login);
   router.post("/verify-otp", users.verifyOTP);
   router.post("/resend-otp", users.resendOTP);
