@@ -676,8 +676,17 @@ exports.deleteAgent = async (req, res) => {
       return res.status(404).send({ message: "Agent not found" });
     }
 
-    // Get admin user info from auth middleware (already available in req.userData)
-    const adminUser = req.userData;
+    // Get admin user info from auth middleware
+    // req.userData is set by auth middleware, fallback to finding by decoded token
+    let adminUser = req.userData;
+
+    if (!adminUser && req.user && req.user.user_id) {
+      try {
+        adminUser = await Users.findById(req.user.user_id);
+      } catch (err) {
+        console.error("Error fetching admin user:", err);
+      }
+    }
 
     // Delete the agent
     await Users.deleteOne({ _id: ObjectId(id) });
@@ -692,7 +701,7 @@ exports.deleteAgent = async (req, res) => {
       if (adminEmails.length > 0) {
         EmailService.sendDeletionNotificationEmail(adminEmails, {
           adminEmail: adminUser?.email || "Unknown",
-          adminName: adminUser?.name || "Unknown Admin",
+          adminName: adminUser?.name || adminUser?.email || "Unknown Admin",
           deletionType: "Agent",
           deletedItemName: agent.name || agent.email,
           deletedItemId: id,

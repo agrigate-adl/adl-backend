@@ -122,8 +122,17 @@ exports.deleteProduct = async (req, res) => {
       return res.status(404).send({ message: "Product not found" });
     }
 
-    // Get admin user info from auth middleware (already available in req.userData)
-    const adminUser = req.userData;
+    // Get admin user info from auth middleware
+    // req.userData is set by auth middleware, fallback to finding by decoded token
+    let adminUser = req.userData;
+
+    if (!adminUser && req.user && req.user.user_id) {
+      try {
+        adminUser = await Users.findById(req.user.user_id);
+      } catch (err) {
+        console.error("Error fetching admin user:", err);
+      }
+    }
 
     // Delete the product
     await Products.deleteOne({ _id: ObjectId(id) });
@@ -138,7 +147,7 @@ exports.deleteProduct = async (req, res) => {
       if (adminEmails.length > 0) {
         emailService.sendDeletionNotificationEmail(adminEmails, {
           adminEmail: adminUser?.email || "Unknown",
-          adminName: adminUser?.name || "Unknown Admin",
+          adminName: adminUser?.name || adminUser?.email || "Unknown Admin",
           deletionType: "Product",
           deletedItemName: product.name,
           deletedItemId: id,
