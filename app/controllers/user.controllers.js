@@ -329,6 +329,46 @@ exports.login = async (req, res) => {
         });
       }
 
+      // If email OTP is disabled, skip OTP verification and log in directly
+      const emailOtpEnabled = process.env.EMAIL_OTP_ENABLED !== "false";
+      if (!emailOtpEnabled) {
+        console.log(
+          `⚠️ EMAIL_OTP_ENABLED=false - skipping OTP, direct login for ${user.email}`
+        );
+
+        // Register the device so future logins are recognized
+        if (deviceId) {
+          if (!user.registeredDevices) {
+            user.registeredDevices = [];
+          }
+          user.registeredDevices.push({
+            deviceId,
+            deviceName: req.body.deviceName || "Unknown Device",
+            registeredAt: new Date(),
+            lastLoginAt: new Date(),
+          });
+          await user.save();
+        }
+
+        const token = jwt.sign(
+          { user_id: user._id, email: user.email },
+          process.env.JWT_SECRET_KEY,
+          { expiresIn: "12h" }
+        );
+
+        return res.status(200).send({
+          message: "Login successful (OTP disabled)",
+          token,
+          requiresOTP: false,
+          user: {
+            id: user._id,
+            email: user.email,
+            role: user.role,
+            name: user.name,
+          },
+        });
+      }
+
       // New device or no device ID provided - require OTP verification
       console.log(`🆔 New device login detected - requiring OTP verification`);
       const otp = generateOTP();
