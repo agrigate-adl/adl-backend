@@ -153,7 +153,9 @@ exports.handlePesapalCallback = async (req, res) => {
                     return res.status(404).send({ message: 'Farmer not found' });
                 }
 
-                const packageIndex = farmer.packages.findIndex(p => p.packageID === transaction.package);
+                // packageID is stored as an ObjectId while transaction.package is a String —
+                // normalize both sides so the comparison actually matches.
+                const packageIndex = farmer.packages.findIndex(p => String(p.packageID) === String(transaction.package));
                 if (packageIndex === -1) {
                     console.error('Package not found in farmer data:', transaction.package);
                     return res.status(404).send({ message: 'Package not found for farmer' });
