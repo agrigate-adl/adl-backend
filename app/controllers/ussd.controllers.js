@@ -79,6 +79,7 @@ menu.state("showBalance", {
 
 menu.state("packages", {
   run: async () => {
+    arrayOfPacks = [];
     let numberTel = menu.val;
     const query = { contact: numberTel };
     foi = await Farmers.findOne(query);
